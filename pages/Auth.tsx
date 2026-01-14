@@ -1,0 +1,198 @@
+import React, { useState } from 'react';
+import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Loader2, ShieldCheck, Gamepad2, CheckCircle } from 'lucide-react';
+import { api } from '../services/api';
+import { Player } from '../types';
+
+interface AuthProps {
+  onLogin: (user: Player) => void;
+  onBack: () => void;
+}
+
+type AuthView = 'LOGIN' | 'REGISTER' | 'FORGOT' | 'VERIFY_SENT';
+
+const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
+  const [view, setView] = useState<AuthView>('LOGIN');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDiscordLoading, setIsDiscordLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const [username, setUsername] = useState('');
+  const [loginIdentifier, setLoginIdentifier] = useState(''); // Email OR Username
+  const [email, setEmail] = useState(''); 
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      // loginIdentifier can be email or username
+      const user = await api.login(loginIdentifier, password);
+      if (user) onLogin(user);
+      else setError('Credenciais inválidas.');
+    } catch (err: any) {
+      if (err.message.includes('Usuário não encontrado')) {
+          setError('Usuário ou email não encontrado.');
+      } else if (err.message.includes('Email not confirmed')) {
+          setError('Confirme seu email.');
+      } else {
+          setError('Credenciais inválidas ou erro de conexão.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!agreedToTerms) { setError("Aceite os termos."); return; }
+    setIsLoading(true);
+    try {
+      if (password !== confirmPassword) throw new Error("Senhas não coincidem.");
+      const result = await api.register(username, email, password);
+      if (result && !result.session) setView('VERIFY_SENT');
+      else {
+        const profile = await api.checkSession();
+        if (profile) onLogin(profile);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erro ao registrar.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDiscordLogin = async () => {
+    setIsDiscordLoading(true);
+    setError('');
+    try {
+      await api.loginWithDiscord();
+      // Redirection happens automatically
+    } catch (e: any) {
+      setIsDiscordLoading(false);
+      setError("Erro ao conectar com Discord.");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-4 relative overflow-hidden text-white font-sans">
+      <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-brand-purple/20 rounded-full blur-[120px] animate-pulse-slow"></div>
+      <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-brand-cyan/10 rounded-full blur-[120px] animate-pulse-slow" style={{animationDelay: '1s'}}></div>
+
+      <div className="w-full max-w-md glass-panel rounded-3xl shadow-2xl relative z-10 overflow-hidden border border-white/10 backdrop-blur-xl animate-in zoom-in-95 duration-500">
+        <button onClick={onBack} className="absolute top-6 left-6 text-slate-500 hover:text-white transition-colors z-20 flex items-center text-xs font-medium uppercase tracking-widest">
+          <ArrowLeft size={14} className="mr-1" /> Início
+        </button>
+
+        <div className="p-8 pb-0 text-center mt-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-white text-black rounded-xl mb-6 shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+            <span className="text-2xl font-bold font-display">C</span>
+          </div>
+          <h1 className="text-2xl font-bold font-display tracking-tight">Carry<span className="text-brand-purple">Me</span></h1>
+          <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest font-bold">Protocolo de Acesso</p>
+        </div>
+
+        <div className="p-8">
+          {error && <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm flex items-center"><ShieldCheck size={16} className="mr-2 flex-shrink-0" />{error}</div>}
+
+          {view === 'LOGIN' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+              <button
+                onClick={handleDiscordLogin}
+                disabled={isDiscordLoading || isLoading}
+                className="group relative w-full py-4 bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold rounded-xl transition-all flex items-center justify-center shadow-xl shadow-[#5865F2]/20 overflow-hidden disabled:opacity-50"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                {isDiscordLoading ? <Loader2 className="animate-spin" /> : <><Gamepad2 className="mr-3" size={20} /> Entrar com Discord</>}
+              </button>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
+                <div className="relative flex justify-center text-[10px] uppercase tracking-[0.2em] font-bold"><span className="px-3 bg-brand-dark text-slate-600">Ou via Credenciais</span></div>
+              </div>
+
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Email ou Usuário</label>
+                  <input 
+                    type="text" 
+                    placeholder="SeuNick ou email@carryme.com" 
+                    className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 focus:border-brand-purple focus:outline-none transition-all placeholder:text-slate-700" 
+                    value={loginIdentifier} 
+                    onChange={(e) => setLoginIdentifier(e.target.value)} 
+                    required 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Senha</label>
+                  <div className="relative">
+                    <input type={showPassword ? "text" : "password"} placeholder="••••••••" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 pr-12 focus:border-brand-purple focus:outline-none transition-all placeholder:text-slate-700" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-3.5 text-slate-600 hover:text-white transition-colors">{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                  </div>
+                </div>
+                <button type="submit" disabled={isLoading || isDiscordLoading} className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-slate-200 transition-all flex items-center justify-center mt-4">
+                  {isLoading ? <Loader2 className="animate-spin" /> : 'Acessar Terminal'}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {view === 'REGISTER' && (
+            <form onSubmit={handleRegister} className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+               <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Nickname</label>
+                  <input type="text" placeholder="Seu Nick" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 focus:border-brand-cyan focus:outline-none transition-all" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Email</label>
+                  <input type="email" placeholder="gamer@carryme.com" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 focus:border-brand-cyan focus:outline-none transition-all" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Senha</label>
+                  <input type="password" placeholder="Mínimo 6 caracteres" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 focus:border-brand-cyan focus:outline-none transition-all" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Confirmar</label>
+                  <input type="password" placeholder="Repita a senha" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 focus:border-brand-cyan focus:outline-none transition-all" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/5 mt-4">
+                  <input type="checkbox" id="terms" className="mt-1 h-4 w-4 rounded border-slate-700 bg-black" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} />
+                  <label htmlFor="terms" className="text-[10px] text-slate-400 leading-tight">Concordo com os Termos de Uso e Política de Privacidade (LGPD) da CarryMe.</label>
+                </div>
+
+                <button type="submit" disabled={isLoading || !agreedToTerms} className="w-full py-4 bg-brand-purple text-white font-bold rounded-xl hover:bg-brand-purple/90 transition-all flex items-center justify-center shadow-lg shadow-brand-purple/20">
+                  {isLoading ? <Loader2 className="animate-spin" /> : 'Criar Conta'}
+                </button>
+            </form>
+          )}
+
+          {view === 'VERIFY_SENT' && (
+            <div className="text-center py-6 space-y-4 animate-in zoom-in-95">
+              <div className="w-16 h-16 bg-brand-cyan/20 rounded-full flex items-center justify-center mx-auto text-brand-cyan"><CheckCircle size={32} /></div>
+              <h2 className="text-xl font-bold">Verifique seu Inbox</h2>
+              <p className="text-slate-500 text-sm">Enviamos um link de confirmação para {email}.</p>
+              <button onClick={() => setView('LOGIN')} className="text-brand-purple font-bold text-sm">Voltar para Login</button>
+            </div>
+          )}
+
+          <div className="bg-black/30 p-6 text-center border-t border-white/5 mt-6 -mx-8 -mb-8">
+            {view === 'LOGIN' ? (
+              <p className="text-slate-500 text-xs">Novo no ecossistema? <button onClick={() => setView('REGISTER')} className="text-brand-purple font-bold hover:underline">Registrar</button></p>
+            ) : (
+              <p className="text-slate-500 text-xs">Já possui cadastro? <button onClick={() => setView('LOGIN')} className="text-brand-purple font-bold hover:underline">Fazer Login</button></p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Auth;
