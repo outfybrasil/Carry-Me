@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Loader2, ShieldCheck, Gamepad2, CheckCircle } from 'lucide-react';
 import { api } from '../services/api';
 import { Player } from '../types';
@@ -6,12 +6,13 @@ import { Player } from '../types';
 interface AuthProps {
   onLogin: (user: Player) => void;
   onBack: () => void;
+  initialView?: 'LOGIN' | 'REGISTER' | 'FORGOT' | 'VERIFY_SENT' | 'UPDATE_PASSWORD';
 }
 
-type AuthView = 'LOGIN' | 'REGISTER' | 'FORGOT' | 'VERIFY_SENT';
+type AuthView = 'LOGIN' | 'REGISTER' | 'FORGOT' | 'VERIFY_SENT' | 'UPDATE_PASSWORD';
 
-const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
-  const [view, setView] = useState<AuthView>('LOGIN');
+const Auth: React.FC<AuthProps> = ({ onLogin, onBack, initialView = 'LOGIN' }) => {
+  const [view, setView] = useState<AuthView>(initialView);
   const [isLoading, setIsLoading] = useState(false);
   const [isDiscordLoading, setIsDiscordLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -24,6 +25,10 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  useEffect(() => {
+    if(initialView) setView(initialView);
+  }, [initialView]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +81,45 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
     } catch (e: any) {
       setIsDiscordLoading(false);
       setError("Erro ao conectar com Discord.");
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+    setIsLoading(true);
+    try {
+        await api.resetPassword(loginIdentifier); 
+        setSuccessMsg('Email de recuperação enviado! Verifique sua caixa de entrada.');
+    } catch (err: any) {
+        setError(err.message || 'Erro ao enviar email de recuperação.');
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      if (password.length < 6) throw new Error("A senha deve ter pelo menos 6 caracteres.");
+      if (password !== confirmPassword) throw new Error("Senhas não coincidem.");
+      
+      await api.updatePassword(password);
+      setSuccessMsg("Senha atualizada com sucesso!");
+      
+      // Auto login/redirect after delay
+      setTimeout(async () => {
+        const user = await api.checkSession();
+        if (user) onLogin(user);
+      }, 1500);
+
+    } catch (err: any) {
+      setError(err.message || 'Erro ao atualizar senha.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -136,6 +180,12 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-3.5 text-slate-600 hover:text-white transition-colors">{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
                   </div>
                 </div>
+                
+                {/* Forgot Password Link */}
+                <div className="flex justify-end">
+                  <button type="button" onClick={() => setView('FORGOT')} className="text-[10px] text-brand-purple font-bold hover:underline">Esqueci minha senha</button>
+                </div>
+
                 <button type="submit" disabled={isLoading || isDiscordLoading} className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-slate-200 transition-all flex items-center justify-center mt-4">
                   {isLoading ? <Loader2 className="animate-spin" /> : 'Acessar Terminal'}
                 </button>
@@ -173,6 +223,73 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
             </form>
           )}
 
+          {view === 'FORGOT' && (
+            <form onSubmit={handleResetPassword} className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="text-center mb-4">
+                    <h2 className="text-xl font-bold text-white">Recuperar Acesso</h2>
+                    <p className="text-slate-400 text-xs mt-1">Informe seu email ou nome de usuário para redefinir a senha.</p>
+                </div>
+                
+                {successMsg ? (
+                    <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm flex items-center">
+                        <CheckCircle size={16} className="mr-2 flex-shrink-0" /> {successMsg}
+                    </div>
+                ) : (
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Email ou Usuário</label>
+                        <input 
+                            type="text" 
+                            placeholder="SeuNick ou email@carryme.com" 
+                            className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 focus:border-brand-purple focus:outline-none transition-all placeholder:text-slate-700" 
+                            value={loginIdentifier} 
+                            onChange={(e) => setLoginIdentifier(e.target.value)} 
+                            required 
+                        />
+                    </div>
+                )}
+
+                {!successMsg && (
+                    <button type="submit" disabled={isLoading} className="w-full py-4 bg-brand-purple text-white font-bold rounded-xl hover:bg-brand-purple/90 transition-all flex items-center justify-center shadow-lg shadow-brand-purple/20">
+                        {isLoading ? <Loader2 className="animate-spin" /> : 'Enviar Link de Recuperação'}
+                    </button>
+                )}
+                
+                <button type="button" onClick={() => setView('LOGIN')} className="w-full py-2 text-slate-500 text-xs font-bold hover:text-white mt-2">
+                    Voltar para Login
+                </button>
+            </form>
+          )}
+          
+          {view === 'UPDATE_PASSWORD' && (
+             <form onSubmit={handleUpdatePassword} className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="text-center mb-4">
+                    <h2 className="text-xl font-bold text-white">Criar Nova Senha</h2>
+                    <p className="text-slate-400 text-xs mt-1">Defina uma nova credencial segura para sua conta.</p>
+                </div>
+                
+                {successMsg ? (
+                   <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm flex items-center">
+                        <CheckCircle size={16} className="mr-2 flex-shrink-0" /> {successMsg}
+                    </div>
+                ) : (
+                    <>
+                         <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Nova Senha</label>
+                            <input type="password" placeholder="Mínimo 6 caracteres" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 focus:border-brand-cyan focus:outline-none transition-all" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Confirmar Nova Senha</label>
+                            <input type="password" placeholder="Repita a senha" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 focus:border-brand-cyan focus:outline-none transition-all" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+                        </div>
+
+                        <button type="submit" disabled={isLoading} className="w-full py-4 bg-brand-purple text-white font-bold rounded-xl hover:bg-brand-purple/90 transition-all flex items-center justify-center shadow-lg shadow-brand-purple/20">
+                            {isLoading ? <Loader2 className="animate-spin" /> : 'Atualizar Senha'}
+                        </button>
+                    </>
+                )}
+             </form>
+          )}
+
           {view === 'VERIFY_SENT' && (
             <div className="text-center py-6 space-y-4 animate-in zoom-in-95">
               <div className="w-16 h-16 bg-brand-cyan/20 rounded-full flex items-center justify-center mx-auto text-brand-cyan"><CheckCircle size={32} /></div>
@@ -185,7 +302,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
           <div className="bg-black/30 p-6 text-center border-t border-white/5 mt-6 -mx-8 -mb-8">
             {view === 'LOGIN' ? (
               <p className="text-slate-500 text-xs">Novo no ecossistema? <button onClick={() => setView('REGISTER')} className="text-brand-purple font-bold hover:underline">Registrar</button></p>
-            ) : (
+            ) : view === 'FORGOT' ? null : view === 'UPDATE_PASSWORD' ? null : (
               <p className="text-slate-500 text-xs">Já possui cadastro? <button onClick={() => setView('LOGIN')} className="text-brand-purple font-bold hover:underline">Fazer Login</button></p>
             )}
           </div>

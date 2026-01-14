@@ -61,6 +61,7 @@ export interface Player {
   gameRole?: string;
   isPremium?: boolean;
   coins: number;
+  tutorialCompleted: boolean; // NEW: Track if user finished onboarding
   inventory: string[]; // List of Item IDs owned
   equipped: {
     border?: string; // Item ID
@@ -69,6 +70,20 @@ export interface Player {
   };
   stats: PlayerStats;
   claimedAchievements: string[]; // List of Achievement IDs
+}
+
+export interface Friend {
+  id: string;
+  username: string;
+  avatar: string;
+  status: 'online' | 'offline' | 'ingame';
+  score: number;
+}
+
+export interface FriendRequest {
+  id: string;
+  fromUser: Friend;
+  timestamp: string;
 }
 
 export interface AppNotification {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -10,11 +11,13 @@ import Shop from './pages/Shop';
 import ActiveMatch from './pages/ActiveMatch';
 import Settings from './pages/Settings';
 import Achievements from './pages/Achievements';
+import Friends from './pages/Friends';
 import { TermsOfService, PrivacyPolicy } from './pages/Legal';
 import PaymentModal from './components/PaymentModal';
 import CookieConsent from './components/CookieConsent';
 import Auth from './pages/Auth';
 import LandingPage from './pages/LandingPage';
+import OnboardingTour from './components/OnboardingTour';
 import { Player, StoreItem, LobbyConfig, Vibe } from './types';
 import { api } from './services/api';
 import { Loader2 } from 'lucide-react';
@@ -60,7 +63,11 @@ const App: React.FC = () => {
   const [isLobbyHost, setIsLobbyHost] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [paymentType, setPaymentType] = useState<'PREMIUM' | 'COINS' | null>(null);
+  const [recoveryMode, setRecoveryMode] = useState(false);
   
+  // Onboarding State
+  const [onboardingStep, setOnboardingStep] = useState(0);
+
   // Lobby Config State
   const [currentLobbyConfig, setCurrentLobbyConfig] = useState<LobbyConfig>({
       title: 'Lobby Público',
@@ -134,22 +141,40 @@ const App: React.FC = () => {
   }, [volume]);
 
   useEffect(() => {
-    // Initial Session Check
+    // 1. Manual Check for Recovery URL (Crucial Fix)
+    const hash = window.location.hash;
+    const query = window.location.search;
+    
+    if ((hash && hash.includes('type=recovery')) || (query && query.includes('type=recovery'))) {
+      console.log("Modo de recuperação detectado via URL");
+      setRecoveryMode(true);
+    }
+
+    // 2. Initial Session Check
     const initSession = async () => {
       const sessionUser = await api.checkSession();
       if (sessionUser) {
         setUser(sessionUser);
+        // Trigger onboarding if not completed
+        if (!sessionUser.tutorialCompleted) {
+           setOnboardingStep(1);
+        }
       }
       setLoading(false);
     };
 
     initSession();
 
-    // Listen for Auth Changes (crucial for OAuth redirect)
+    // 3. Listen for Auth Changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
+      if (event === 'PASSWORD_RECOVERY') {
+        setRecoveryMode(true);
+      } else if (event === 'SIGNED_IN' && session?.user) {
         const profile = await api.syncUserProfile(session.user);
-        if (profile) setUser(profile);
+        if (profile) {
+            setUser(profile);
+            if (!profile.tutorialCompleted) setOnboardingStep(1);
+        }
         setShowAuth(false);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -162,6 +187,10 @@ const App: React.FC = () => {
   const handleLoginSuccess = (loggedInUser: Player) => {
     setUser(loggedInUser);
     setShowAuth(false);
+    setRecoveryMode(false);
+    if (!loggedInUser.tutorialCompleted) setOnboardingStep(1);
+    // Remove hash from url to prevent loop if refreshed
+    window.history.replaceState(null, '', window.location.pathname);
   };
 
   const handleLogout = async () => {
@@ -252,6 +281,31 @@ const App: React.FC = () => {
     }
   };
 
+  // ONBOARDING HANDLERS
+  const handleOnboardingNext = async () => {
+    if (onboardingStep === 1) {
+        setOnboardingStep(2); // Go to Profile Task
+    } else if (onboardingStep === 3) {
+        if(user) {
+            await api.completeTutorial(user.id);
+            await refreshUser();
+        }
+        setOnboardingStep(0); // Finish
+    }
+  };
+
+  const handleOnboardingNavigate = (page: string) => {
+      setCurrentPage(page);
+      // Don't close onboarding step 2 yet, wait for action
+  };
+
+  // Called by Profile page when avatar changes
+  const handleProfileUpdated = () => {
+      if (onboardingStep === 2) {
+          setOnboardingStep(3); // Show reward
+      }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-dark flex flex-col items-center justify-center">
@@ -261,13 +315,35 @@ const App: React.FC = () => {
     );
   }
 
+  // FORCE RECOVERY VIEW if recovery mode is active
+  if (recoveryMode) {
+      return (
+         <>
+            <Auth onLogin={handleLoginSuccess} onBack={() => { setRecoveryMode(false); setShowAuth(false); }} initialView="UPDATE_PASSWORD" />
+            <CookieConsent />
+         </>
+      )
+  }
+
+  // Allow public access to legal pages even without user
   if (!user) {
+    if (currentPage === 'terms') {
+      return <div className="min-h-screen bg-[#020202]"><TermsOfService onBack={() => setCurrentPage('dashboard')} /></div>;
+    }
+    if (currentPage === 'privacy') {
+      return <div className="min-h-screen bg-[#020202]"><PrivacyPolicy onBack={() => setCurrentPage('dashboard')} /></div>;
+    }
+
     return (
       <>
         {showAuth ? (
           <Auth onLogin={handleLoginSuccess} onBack={() => setShowAuth(false)} />
         ) : (
-          <LandingPage onGetStarted={() => setShowAuth(true)} />
+          <LandingPage 
+            onGetStarted={() => setShowAuth(true)} 
+            onViewTerms={() => setCurrentPage('terms')}
+            onViewPrivacy={() => setCurrentPage('privacy')}
+          />
         )}
         <CookieConsent />
       </>
@@ -280,7 +356,8 @@ const App: React.FC = () => {
     // Routing Logic
     switch (currentPage) {
       case 'dashboard': return <Dashboard onFindMatch={() => setCurrentPage('match')} onVote={() => setShowVotingOverride(true)} />;
-      case 'profile': return <Profile user={user} onEquip={handleEquipItem} />;
+      case 'profile': return <Profile user={user} onEquip={handleEquipItem} onProfileUpdate={handleProfileUpdated} />;
+      case 'friends': return <Friends user={user} />;
       case 'sherpa': return <SherpaMarket user={user} onUpdateUser={refreshUser} />;
       case 'achievements': return <Achievements user={user} onUpdateUser={refreshUser} />;
       case 'shop': return <Shop user={user} onBuy={handleBuyItem} onAddCoins={() => triggerPayment('COINS')} />;
@@ -313,7 +390,15 @@ const App: React.FC = () => {
   return (
     <>
       <CookieConsent />
-      {!hasAcceptedManifesto && <ManifestoModal onAccept={() => setHasAcceptedManifesto(true)} />}
+      <OnboardingTour 
+        step={onboardingStep} 
+        onNext={handleOnboardingNext} 
+        onNavigate={handleOnboardingNavigate}
+        currentPage={currentPage}
+      />
+      
+      {!hasAcceptedManifesto && !onboardingStep && <ManifestoModal onAccept={() => setHasAcceptedManifesto(true)} />}
+      
       <PaymentModal isOpen={isPaymentOpen} onClose={() => setIsPaymentOpen(false)} onSuccess={handlePaymentSuccess} itemTitle={paymentType === 'PREMIUM' ? 'CarryMe Premium' : '1000 CarryCoins'} price={paymentType === 'PREMIUM' ? 19.90 : 25.00} />
       
       {(currentPage === 'terms' || currentPage === 'privacy') ? (

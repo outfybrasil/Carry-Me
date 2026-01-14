@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { Vibe, LobbyConfig } from '../types';
-import { Loader2, Mic, Crown, Lock, Settings, Users, Gamepad2, Search, ArrowLeft } from 'lucide-react';
+import { Loader2, Mic, Crown, Lock, Settings, Users, Search, ArrowLeft, XCircle, RefreshCw, Radar, Signal, Globe } from 'lucide-react';
 
 interface MatchLobbyProps {
   onCancel: () => void;
@@ -12,18 +13,22 @@ interface MatchLobbyProps {
 
 const GAMES = [
   { id: 'lol', name: 'League of Legends', color: 'from-blue-600 to-blue-400', icon: 'https://img.icons8.com/color/96/league-of-legends.png', maxLimit: 5 },
-  { id: 'cs2', name: 'CS2', color: 'from-orange-600 to-yellow-500', icon: 'https://1000logos.net/wp-content/uploads/2025/10/Counter-Strike-2-CS2-%E2%80%93-A-Modern-Evolution-2023%E2%80%93Present.png', maxLimit: 5 },
-  { id: 'valorant', name: 'Valorant', color: 'from-red-600 to-rose-500', icon: 'https://img.icons8.com/windows/96/FA5252/valorant.png', maxLimit: 5 },
-  { id: 'apex', name: 'Apex Legends', color: 'from-red-700 to-orange-600', icon: 'https://logosmarcas.net/wp-content/uploads/2020/11/Apex-Legends-Logo.png', maxLimit: 3 },
-  { id: 'r6', name: 'Rainbow Six Siege', color: 'from-slate-700 to-slate-500', icon: 'https://fbi.cults3d.com/uploaders/20470091/illustration-file/4a3bc3b5-3a54-4c8d-bdfa-0232fc950341/Rainbow-Six-Symbol.png', maxLimit: 5 }
+  { id: 'cs2', name: 'CS2', color: 'from-orange-600 to-yellow-500', icon: 'https://cdn.icon-icons.com/icons2/4222/PNG/512/counter_strike_2_logo_icon_263177.png', maxLimit: 5 },
+  { id: 'valorant', name: 'Valorant', color: 'from-red-600 to-rose-500', icon: 'https://img.icons8.com/color/96/valorant.png', maxLimit: 5 },
+  { id: 'apex', name: 'Apex Legends', color: 'from-red-700 to-orange-600', icon: 'https://img.icons8.com/color/96/apex-legends.png', maxLimit: 3 },
+  { id: 'r6', name: 'Rainbow Six Siege', color: 'from-slate-700 to-slate-500', icon: 'https://img.icons8.com/color/96/rainbow-six-siege.png', maxLimit: 5 }
 ];
 
 const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade, onMatchFound, onCreateLobby }) => {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'find' | 'create'>('find');
   const [selectedVibe, setSelectedVibe] = useState<Vibe>(Vibe.TRYHARD);
-  const [isSearching, setIsSearching] = useState(false);
+  
+  // Search State Machine
+  const [searchStatus, setSearchStatus] = useState<'idle' | 'searching' | 'expanding' | 'found' | 'failed'>('idle');
   const [timer, setTimer] = useState(0);
+  const [estimatedTime, setEstimatedTime] = useState(0);
+  const [playersInQueue, setPlayersInQueue] = useState(0);
 
   // Host State
   const [lobbyConfig, setLobbyConfig] = useState<LobbyConfig>({
@@ -35,24 +40,97 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
     maxPlayers: 5
   });
 
+  // Sound Effect Ref
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  const playPing = () => {
+      if(!audioCtxRef.current) {
+          const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+          audioCtxRef.current = new AudioContext();
+      }
+      const ctx = audioCtxRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+  }
+
+  const playSuccess = () => {
+      if(!audioCtxRef.current) {
+          const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+          audioCtxRef.current = new AudioContext();
+      }
+      const ctx = audioCtxRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(400, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(600, ctx.currentTime + 0.1);
+      osc.frequency.linearRampToValueAtTime(1000, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+  }
+
+  // Timer & Queue Simulation
   useEffect(() => {
     let interval: any;
-    if (isSearching) {
+    if (searchStatus === 'searching' || searchStatus === 'expanding') {
       interval = setInterval(() => {
         setTimer(t => t + 1);
+        // Simulate fluctuating player count
+        setPlayersInQueue(prev => {
+            const change = Math.floor(Math.random() * 5) - 2;
+            return Math.max(12, prev + change);
+        });
+        
+        // Visual ping effect
+        if (timer % 2 === 0) playPing();
+
       }, 1000);
     } else {
       setTimer(0);
     }
     return () => clearInterval(interval);
-  }, [isSearching]);
+  }, [searchStatus, timer]);
 
-  // Simulate finding a match
+  // Robust Search Logic
   useEffect(() => {
-    if (isSearching && activeTab === 'find' && timer > 3) {
-      // Auto-accept simulation
+    if (searchStatus === 'searching') {
+      // Set initial random estimated time (between 15s and 40s)
+      const est = Math.floor(Math.random() * 25) + 15;
+      setEstimatedTime(est);
+      setPlayersInQueue(Math.floor(Math.random() * 50) + 20);
+
+      // Stage 1: Initial Search (0-8s)
+      // Stage 2: Expanding Search (8s+)
+      // Stage 3: Found (Randomly between 10s and Estimated Time)
+      
+      const expandTimeout = setTimeout(() => {
+          if(searchStatus === 'searching') setSearchStatus('expanding');
+      }, 8000);
+
+      const foundDelay = Math.floor(Math.random() * 10000) + 5000; // 5s to 15s delay
+      const foundTimeout = setTimeout(() => {
+          setSearchStatus('found');
+          playSuccess();
+      }, foundDelay);
+
+      return () => {
+          clearTimeout(expandTimeout);
+          clearTimeout(foundTimeout);
+      };
     }
-  }, [isSearching, timer, activeTab]);
+  }, [searchStatus]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -75,6 +153,14 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
         game: gameName,
         maxPlayers: maxPlayers
     }));
+  };
+
+  const startSearch = () => {
+      setSearchStatus('searching');
+  };
+
+  const cancelSearch = () => {
+      setSearchStatus('idle');
   };
 
   // --- STEP 1: GAME SELECTION ---
@@ -119,8 +205,8 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
       {/* Header with Game Change */}
       <div className="flex justify-between items-center mb-8">
          <div className="flex items-center gap-4">
-             <div className={`p-3 rounded-xl bg-gradient-to-br ${currentGameObj?.color}`}>
-                <img src={currentGameObj?.icon} className="w-8 h-8 invert brightness-0 object-contain" />
+             <div className="p-3 rounded-xl bg-slate-800 border border-slate-700">
+                <img src={currentGameObj?.icon} className="w-8 h-8 object-contain" />
              </div>
              <div>
                 <h2 className="text-2xl font-bold text-white">{currentGameObj?.name}</h2>
@@ -129,7 +215,7 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
          </div>
          
          {/* Mode Toggle */}
-         {!isSearching && (
+         {searchStatus === 'idle' && (
            <div className="bg-slate-900 p-1 rounded-xl flex space-x-1 border border-slate-800">
             <button 
               onClick={() => setActiveTab('find')}
@@ -148,37 +234,86 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
          )}
       </div>
 
-      {isSearching ? (
-        <div className="flex flex-col items-center justify-center h-[50vh] text-center bg-slate-900/50 rounded-3xl border border-slate-800">
-           <div className="relative mb-8">
-             <div className={`absolute inset-0 blur-xl opacity-20 animate-pulse rounded-full ${activeTab === 'create' ? 'bg-amber-500' : 'bg-blue-500'}`}></div>
-             <Loader2 className={`w-24 h-24 animate-spin relative z-10 ${activeTab === 'create' ? 'text-amber-500' : 'text-blue-500'}`} />
-           </div>
+      {searchStatus !== 'idle' ? (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center bg-slate-900/50 rounded-3xl border border-slate-800 transition-all relative overflow-hidden">
            
-           <h2 className="text-2xl font-bold text-white mb-2">
-             {timer > 3 && activeTab === 'find' ? "Partida Encontrada!" : (activeTab === 'create' ? "Configurando Servidor..." : "Escaneando Jogadores...")}
-           </h2>
-           <p className="text-slate-400 mb-6">{currentGameObj?.name} • {selectedVibe}</p>
-           <div className="text-4xl font-mono text-slate-300 mb-8">{formatTime(timer)}</div>
-
-           {timer > 3 && activeTab === 'find' && (
-             <button 
-               onClick={onMatchFound} 
-               className="px-8 py-3 bg-green-500 hover:bg-green-400 text-white font-bold rounded-xl animate-bounce shadow-lg shadow-green-500/30"
-             >
-               Aceitar Partida
-             </button>
+           {/* Dynamic Background for Searching */}
+           {(searchStatus === 'searching' || searchStatus === 'expanding') && (
+               <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-blue-500/10 rounded-full animate-[ping_3s_linear_infinite]"></div>
+                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-blue-500/20 rounded-full animate-[ping_3s_linear_infinite_1s]"></div>
+               </div>
            )}
-           
-           <button 
-            onClick={() => setIsSearching(false)}
-            className="mt-4 text-sm text-slate-500 hover:text-white"
-           >
-             Cancelar Busca
-           </button>
+
+           {/* SEARCHING / EXPANDING STATE */}
+           {(searchStatus === 'searching' || searchStatus === 'expanding') && (
+             <div className="relative z-10 w-full max-w-md">
+               <div className="relative mb-8 mx-auto w-32 h-32">
+                 <div className={`absolute inset-0 blur-2xl opacity-30 animate-pulse rounded-full ${activeTab === 'create' ? 'bg-amber-500' : 'bg-blue-500'}`}></div>
+                 <div className="relative z-10 w-full h-full bg-slate-900 rounded-full border-4 border-slate-800 flex items-center justify-center">
+                    <Radar className={`w-16 h-16 animate-[spin_3s_linear_infinite] ${activeTab === 'create' ? 'text-amber-500' : 'text-blue-500'}`} />
+                 </div>
+               </div>
+               
+               <h2 className="text-2xl font-bold text-white mb-2 animate-pulse">
+                 {searchStatus === 'expanding' ? "Expandindo Busca..." : "Buscando Aliados..."}
+               </h2>
+               <p className="text-slate-400 mb-8">{currentGameObj?.name} • {selectedVibe}</p>
+               
+               <div className="grid grid-cols-2 gap-4 mb-8 bg-black/20 p-4 rounded-xl border border-white/5">
+                  <div>
+                      <div className="text-xs text-slate-500 uppercase font-bold">Tempo Decorrido</div>
+                      <div className="text-xl font-mono text-white">{formatTime(timer)}</div>
+                  </div>
+                  <div>
+                      <div className="text-xs text-slate-500 uppercase font-bold">Estimado</div>
+                      <div className="text-xl font-mono text-slate-400">~{formatTime(estimatedTime)}</div>
+                  </div>
+                  <div>
+                      <div className="text-xs text-slate-500 uppercase font-bold flex items-center justify-center gap-1"><Users size={10}/> Fila</div>
+                      <div className="text-xl font-mono text-white">{playersInQueue}</div>
+                  </div>
+                  <div>
+                      <div className="text-xs text-slate-500 uppercase font-bold flex items-center justify-center gap-1"><Signal size={10}/> Score Range</div>
+                      <div className="text-xl font-mono text-white">{searchStatus === 'expanding' ? '±20' : '±10'}</div>
+                  </div>
+               </div>
+               
+               <button 
+                onClick={cancelSearch}
+                className="text-sm text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-6 py-2 rounded-full border border-red-500/20 transition-colors"
+               >
+                 Cancelar Busca
+               </button>
+             </div>
+           )}
+
+           {/* FOUND STATE */}
+           {searchStatus === 'found' && (
+             <div className="animate-in zoom-in duration-300 relative z-10">
+                <div className="relative mb-8">
+                   <div className="absolute inset-0 bg-green-500 blur-3xl opacity-30 rounded-full animate-pulse"></div>
+                   <div className="w-32 h-32 bg-slate-900 rounded-full flex items-center justify-center relative z-10 border-4 border-green-500 mx-auto">
+                      <Users size={56} className="text-green-500" />
+                   </div>
+                </div>
+                <h2 className="text-4xl font-bold text-white mb-2">Partida Encontrada!</h2>
+                <p className="text-slate-300 mb-8 text-lg">Seu squad está pronto.</p>
+                
+                <div className="flex flex-col items-center gap-4">
+                    <button 
+                        onClick={onMatchFound} 
+                        className="px-12 py-5 bg-green-600 hover:bg-green-500 text-white font-bold text-xl rounded-2xl animate-bounce shadow-xl shadow-green-600/30 transition-all transform hover:scale-105"
+                        >
+                        ACEITAR PARTIDA
+                    </button>
+                    <p className="text-xs text-slate-500 uppercase tracking-widest animate-pulse">Aceitar automaticamente em 10s...</p>
+                </div>
+             </div>
+           )}
         </div>
       ) : activeTab === 'find' ? (
-        // FIND MATCH MODE
+        // FIND MATCH MODE CONFIG
         <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8">
           <div className="text-center mb-10">
             <h1 className="text-3xl font-bold mb-2 text-white">Qual a vibe de hoje?</h1>
@@ -209,8 +344,19 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
             ))}
           </div>
 
+          <div className="bg-black/30 p-4 rounded-xl border border-white/5 mb-8 flex items-center justify-between">
+             <div className="flex items-center gap-3">
+                <Globe size={20} className="text-slate-400" />
+                <div>
+                    <div className="text-sm font-bold text-white">Região: Brasil (BR)</div>
+                    <div className="text-xs text-slate-500">Latência estimada: 15ms</div>
+                </div>
+             </div>
+             <div className="text-green-400 text-xs font-bold bg-green-400/10 px-2 py-1 rounded">Ótima Conexão</div>
+          </div>
+
           <button 
-            onClick={() => setIsSearching(true)}
+            onClick={startSearch}
             className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-lg rounded-2xl shadow-xl shadow-blue-600/20 transition-all transform hover:scale-[1.01] flex items-center justify-center gap-3"
           >
             <Search size={24} />

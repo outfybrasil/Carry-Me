@@ -1,12 +1,15 @@
+
 import React, { useEffect, useState } from 'react';
 import { ShieldCheck, Zap, Users, Gamepad2, GraduationCap, ChevronRight, Star, Loader2, PlayCircle } from 'lucide-react';
 import { api } from '../services/api';
 
 interface LandingPageProps {
   onGetStarted: () => void;
+  onViewTerms: () => void;
+  onViewPrivacy: () => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, onViewPrivacy }) => {
   const [stats, setStats] = useState({
     users: 0,
     matches: 0,
@@ -261,8 +264,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                <span className="font-bold">CarryMe &copy; 2026</span>
             </div>
             <div className="flex gap-6">
-                <a href="#" className="hover:text-white transition-colors">Termos</a>
-                <a href="#" className="hover:text-white transition-colors">Privacidade</a>
+                <button onClick={onViewTerms} className="hover:text-white transition-colors">Termos</button>
+                <button onClick={onViewPrivacy} className="hover:text-white transition-colors">Privacidade</button>
                 <a href="#" className="hover:text-white transition-colors">Discord</a>
             </div>
         </div>

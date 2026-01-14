@@ -1,18 +1,19 @@
+
 import { Player, Tag, TagType, Match, Vibe, SherpaProfile, StoreItem, ItemType, Achievement, AppNotification } from './types';
 
+// CURRENT_USER is just a fallback type shape, actual user comes from Auth
 export const CURRENT_USER: Player = {
   id: 'u1',
-  username: 'Kaelthas_99',
-  avatar: 'https://picsum.photos/200/200',
-  score: 85,
-  badges: ['Shotcaller', 'Sherpa'],
-  gameRole: 'Flex',
+  username: 'Guest',
+  avatar: '',
+  score: 50,
+  badges: [],
+  gameRole: '',
   isPremium: false,
-  coins: 150, // Starting currency
-  inventory: ['border_c_slate'],
-  equipped: {
-    border: 'border_c_slate'
-  },
+  coins: 0,
+  inventory: [],
+  equipped: {},
+  tutorialCompleted: false,
   stats: {
     matchesPlayed: 0,
     mvps: 0,
@@ -32,6 +33,7 @@ export const ACHIEVEMENTS_LIST: Achievement[] = [
   { id: 'ach_6', title: 'Sensei', description: 'Realize 1 sessão como Sherpa.', icon: 'GraduationCap', targetValue: 1, reward: 1000, statKey: 'sherpaSessions' },
 ];
 
+// CLEANED: No fake notifications
 export const MOCK_NOTIFICATIONS: AppNotification[] = [];
 
 /* --- MASSIVE STORE ITEMS LIST --- */
@@ -237,35 +239,11 @@ export const NEGATIVE_TAGS: Tag[] = [
   { id: 't8', label: 'AFK / Quit', type: TagType.NEGATIVE, description: 'Saiu da partida ou ficou ausente' },
 ];
 
-// Empty mock matches to clean up dashboard
+// CLEANED: No fake matches
 export const MOCK_MATCHES: Match[] = [];
 
-export const MOCK_SHERPAS: SherpaProfile[] = [
-  {
-    id: 's1',
-    player: { id: 'sp1', username: 'GrandMasterYoda', avatar: 'https://picsum.photos/210', score: 99, badges: ['Lenda', 'Sherpa'], isPremium: true, coins: 0, inventory: [], equipped: {}, stats: { matchesPlayed: 100, mvps: 20, commendations: 500, sherpaSessions: 50, perfectBehaviorStreak: 20 }, claimedAchievements: [] },
-    hourlyRate: 50,
-    rating: 5.0,
-    reviews: 142,
-    specialties: ['Macro Gaming', 'Mentalidade', 'Shotcalling']
-  },
-  {
-    id: 's2',
-    player: { id: 'sp2', username: 'AimGod_RX', avatar: 'https://picsum.photos/211', score: 94, badges: ['Sherpa'], coins: 0, inventory: [], equipped: {}, stats: { matchesPlayed: 80, mvps: 15, commendations: 300, sherpaSessions: 20, perfectBehaviorStreak: 10 }, claimedAchievements: [] },
-    hourlyRate: 35,
-    rating: 4.8,
-    reviews: 89,
-    specialties: ['Mira', 'Posicionamento', 'FPS']
-  },
-  {
-    id: 's3',
-    player: { id: 'sp3', username: 'HealerMain', avatar: 'https://picsum.photos/212', score: 98, badges: ['Anjo'], isPremium: true, coins: 0, inventory: [], equipped: {}, stats: { matchesPlayed: 120, mvps: 10, commendations: 600, sherpaSessions: 10, perfectBehaviorStreak: 50 }, claimedAchievements: [] },
-    hourlyRate: 25,
-    rating: 4.9,
-    reviews: 210,
-    specialties: ['Suporte', 'Comunicação', 'Proteção']
-  }
-];
+// CLEANED: No fake sherpas
+export const MOCK_SHERPAS: SherpaProfile[] = [];
 
 export const RADAR_DATA = [
   { subject: 'Liderança', A: 90, fullMark: 100 },

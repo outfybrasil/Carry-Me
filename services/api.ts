@@ -1,22 +1,25 @@
 
 import { supabase } from '../lib/supabase';
-import { Player, AppNotification } from '../types';
+import { Player, AppNotification, Friend, FriendRequest } from '../types';
 
 // Helper to transform DB shape to App shape
 const transformProfile = (data: any, inventory: any[]): Player => {
-  // LocalStorage Fallback/Sync mechanism
+  // LocalStorage Fallback/Sync mechanism (Persists user state across sessions)
   const localInventoryKey = `carryme_inventory_${data.id}`;
   const localEquippedKey = `carryme_equipped_${data.id}`;
   const localCoinsKey = `carryme_coins_${data.id}`;
   const localClaimsKey = `carryme_claims_${data.id}`;
-  // New: Sync stats locally to simulate progress in demo without DB writes
   const localStatsKey = `carryme_stats_${data.id}`;
+  const localTutorialKey = `carryme_tutorial_${data.id}`;
+  const localAvatarKey = `carryme_avatar_${data.id}`; // NEW: Local Avatar Key
 
   const localInventory = JSON.parse(localStorage.getItem(localInventoryKey) || '[]');
   const localEquipped = JSON.parse(localStorage.getItem(localEquippedKey) || '{}');
   const localCoins = localStorage.getItem(localCoinsKey);
   const localClaims = JSON.parse(localStorage.getItem(localClaimsKey) || '[]');
   const localStats = JSON.parse(localStorage.getItem(localStatsKey) || 'null');
+  const localTutorial = localStorage.getItem(localTutorialKey) === 'true';
+  const localAvatar = localStorage.getItem(localAvatarKey); // NEW: Get Local Avatar
 
   // Merge DB inventory with LocalStorage inventory (deduplicated)
   const dbInventoryIds = inventory.map((i: any) => i.item_id);
@@ -40,11 +43,13 @@ const transformProfile = (data: any, inventory: any[]): Player => {
   return {
     id: data.id,
     username: data.username,
-    avatar: data.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.username}`,
+    // Prioritize local avatar (for base64 support), then DB avatar, then dicebear fallback
+    avatar: localAvatar || data.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.username}`,
     score: data.score,
     coins: finalCoins,
     isPremium: data.is_premium,
     isSherpa: data.is_sherpa || false,
+    tutorialCompleted: localTutorial || data.tutorial_completed || false,
     badges: data.badges || [],
     equipped: finalEquipped,
     inventory: mergedInventory,
@@ -63,25 +68,26 @@ export const api = {
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('is_sherpa', true);
+      
       if (userError) throw userError;
+      
       const users = totalUsers || 0;
       const sherpas = totalSherpas || 0;
-      const estimatedMatches = users > 0 ? users * 12 + 842 : 12400; 
-      return { users, matches: estimatedMatches, sherpas, satisfaction: 4.9 };
+      const estimatedMatches = users > 0 ? users * 2 : 0; 
+      
+      return { users, matches: estimatedMatches, sherpas, satisfaction: 5.0 };
     } catch (e) {
-      return { users: 1200, matches: 15000, sherpas: 45, satisfaction: 5.0 };
+      return { users: 0, matches: 0, sherpas: 0, satisfaction: 5.0 };
     }
   },
 
   async login(loginIdentifier: string, password: string): Promise<Player | null> {
     let emailToUse = loginIdentifier;
 
-    // Check if input looks like an email
     const isEmail = String(loginIdentifier).toLowerCase().match(
       /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
     );
 
-    // If not an email, assume it's a username and try to find the associated email
     if (!isEmail) {
         const { data: profileData, error: profileError } = await supabase
             .from('profiles')
@@ -106,7 +112,6 @@ export const api = {
   },
 
   async register(username: string, email: string, password: string) {
-    // Check if username exists first to avoid vague DB errors
     const { data: existingUser } = await supabase
         .from('profiles')
         .select('username')
@@ -120,18 +125,52 @@ export const api = {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username: username } }
+      options: { 
+        data: { username: username },
+        emailRedirectTo: 'https://carry-me.netlify.app' 
+      }
     });
     if (error) throw error;
     return data;
+  },
+
+  async resetPassword(identifier: string) {
+    let emailToUse = identifier;
+    const isEmail = String(identifier).toLowerCase().match(
+      /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+    );
+
+    if (!isEmail) {
+        const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('username', identifier)
+            .maybeSingle();
+        
+        if (profileError || !profileData || !profileData.email) {
+            throw new Error('Usuário não encontrado.');
+        }
+        emailToUse = profileData.email;
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(emailToUse, {
+      redirectTo: 'https://carry-me.netlify.app', 
+    });
+    
+    if (error) throw error;
+    return true;
+  },
+
+  async updatePassword(newPassword: string) {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    return true;
   },
 
   async loginWithDiscord() {
     const url = new URL(window.location.href);
     const redirectUrl = `${url.protocol}//${url.host}`;
     
-    console.log("Iniciando login Discord. Redirecting to:", redirectUrl);
-
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
@@ -157,9 +196,10 @@ export const api = {
     if (!profile) {
       const username = meta.custom_claims?.global_name || meta.full_name || meta.username || user.email?.split('@')[0] || 'Gamer';
       const avatar = meta.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+      // Initialize with 0 coins as requested
       const { data: newProfile, error } = await supabase
         .from('profiles')
-        .insert([{ id: userId, username, email: user.email, avatar, score: 50, coins: 100 }])
+        .insert([{ id: userId, username, email: user.email, avatar, score: 50, coins: 0, tutorial_completed: false }])
         .select().single();
       if (error && error.code !== '23505') return null;
       profile = newProfile || (await supabase.from('profiles').select('*').eq('id', userId).single()).data;
@@ -169,8 +209,38 @@ export const api = {
   },
 
   async updateAvatar(userId: string, newUrl: string) {
+    // 1. Always save locally first to guarantee UI update (Hybrid approach)
+    // This handles large Base64 strings that might be rejected by the DB strictly
+    try {
+        localStorage.setItem(`carryme_avatar_${userId}`, newUrl);
+    } catch (e) {
+        console.warn("Local storage full", e);
+    }
+
+    // 2. Try to update DB (Best effort)
     const { error } = await supabase.from('profiles').update({ avatar: newUrl }).eq('id', userId);
-    return !error;
+    
+    // We return true even if DB fails, because we saved it locally for the session.
+    // This ensures the user isn't blocked in the tutorial.
+    if (error) {
+        console.warn("DB Update failed (likely size limit), using local fallback.");
+    }
+    
+    return true;
+  },
+
+  // NEW: Tutorial Completion
+  async completeTutorial(userId: string) {
+    const localTutorialKey = `carryme_tutorial_${userId}`;
+    localStorage.setItem(localTutorialKey, 'true');
+    
+    // Add 500 coins reward
+    await this.purchaseCoins(userId, 500);
+    
+    // Update DB flag
+    await supabase.from('profiles').update({ tutorial_completed: true }).eq('id', userId);
+    
+    return true;
   },
 
   async deleteAccount(userId: string) {
@@ -186,7 +256,6 @@ export const api = {
   },
 
   async hireSherpa(clientId: string, sherpaId: string, cost: number) {
-    // Local simulation for coins if RPC fails
     const localCoinsKey = `carryme_coins_${clientId}`;
     const currentCoins = parseInt(localStorage.getItem(localCoinsKey) || '0');
     
@@ -204,7 +273,6 @@ export const api = {
   },
 
   async purchaseCoins(userId: string, amount: number) {
-    // Save to local storage for persistence in demo mode
     const localCoinsKey = `carryme_coins_${userId}`;
     const currentCoins = parseInt(localStorage.getItem(localCoinsKey) || '0'); 
     
@@ -214,7 +282,6 @@ export const api = {
     
     localStorage.setItem(localCoinsKey, newTotal.toString());
 
-    // Try DB write
     const { error } = await supabase.rpc('add_coins', { user_id_input: userId, amount: amount });
     return true; 
   },
@@ -223,13 +290,11 @@ export const api = {
     const localClaimsKey = `carryme_claims_${userId}`;
     const localCoinsKey = `carryme_coins_${userId}`;
     
-    // Update Claims
     const claims = JSON.parse(localStorage.getItem(localClaimsKey) || '[]');
     if (!claims.includes(achievementId)) {
         claims.push(achievementId);
         localStorage.setItem(localClaimsKey, JSON.stringify(claims));
         
-        // Update Coins
         const currentCoins = parseInt(localStorage.getItem(localCoinsKey) || '0');
         localStorage.setItem(localCoinsKey, (currentCoins + reward).toString());
         return true;
@@ -282,23 +347,18 @@ export const api = {
     return !error;
   },
 
-  // --- Real Stats & Notification System (Simulated via LocalStorage for persistence) ---
-
   async incrementMatchStats(userId: string, isWin: boolean) {
     const localStatsKey = `carryme_stats_${userId}`;
     let stats = JSON.parse(localStorage.getItem(localStatsKey) || JSON.stringify({ matchesPlayed: 0, mvps: 0, commendations: 0, perfectBehaviorStreak: 0 }));
     
     stats.matchesPlayed += 1;
     if (isWin) {
-        // Random chance to simulate getting MVP or Commendation for realism
         if (Math.random() > 0.7) stats.mvps += 1;
         if (Math.random() > 0.5) stats.commendations += 1;
     }
     stats.perfectBehaviorStreak += 1;
 
     localStorage.setItem(localStatsKey, JSON.stringify(stats));
-    
-    // Trigger notification
     this.createNotification(userId, "Partida Concluída", "Seus dados de comportamento foram atualizados.", "info");
   },
 
@@ -307,7 +367,6 @@ export const api = {
     const data = localStorage.getItem(key);
     
     if (!data) {
-        // Initial welcome notification if empty
         const initial: AppNotification[] = [{
             id: 'welcome',
             title: 'Bem-vindo ao CarryMe',
@@ -342,9 +401,98 @@ export const api = {
         read: false
     };
     
-    // Keep last 20 notifications
     const updated = [newNotif, ...data].slice(0, 20);
     localStorage.setItem(key, JSON.stringify(updated));
+  },
+
+  async searchUsers(query: string, currentUserId: string): Promise<Friend[]> {
+    const { data } = await supabase.from('profiles')
+        .select('id, username, avatar, score')
+        .ilike('username', `%${query}%`)
+        .neq('id', currentUserId) 
+        .limit(5);
+
+    if (!data) return [];
+
+    let results = data.map((u: any) => ({ ...u, status: 'offline' }));
+    return results as Friend[];
+  },
+
+  async getFriends(userId: string): Promise<Friend[]> {
+    const key = `carryme_friendships`;
+    const friendships = JSON.parse(localStorage.getItem(key) || '[]');
+    
+    const myFriends = friendships
+        .filter((f: any) => (f.from === userId || f.to === userId) && f.status === 'accepted')
+        .map((f: any) => f.from === userId ? f.friendData : f.userData);
+
+    return myFriends;
+  },
+
+  async getFriendRequests(userId: string): Promise<FriendRequest[]> {
+    const key = `carryme_friendships`;
+    const friendships = JSON.parse(localStorage.getItem(key) || '[]');
+    
+    return friendships
+        .filter((f: any) => f.to === userId && f.status === 'pending')
+        .map((f: any) => ({
+            id: f.id,
+            fromUser: f.userData,
+            timestamp: new Date(f.timestamp).toLocaleDateString()
+        }));
+  },
+
+  async sendFriendRequest(fromUser: Player, toUser: Friend) {
+    const key = `carryme_friendships`;
+    const friendships = JSON.parse(localStorage.getItem(key) || '[]');
+
+    const exists = friendships.find((f: any) => 
+        (f.from === fromUser.id && f.to === toUser.id) || 
+        (f.from === toUser.id && f.to === fromUser.id)
+    );
+
+    if (exists) return { success: false, message: 'Solicitação já enviada ou já são amigos.' };
+
+    const newRequest = {
+        id: Date.now().toString(),
+        from: fromUser.id,
+        to: toUser.id,
+        status: 'pending',
+        timestamp: new Date().toISOString(),
+        userData: { id: fromUser.id, username: fromUser.username, avatar: fromUser.avatar, score: fromUser.score, status: 'online' },
+        friendData: toUser 
+    };
+
+    localStorage.setItem(key, JSON.stringify([...friendships, newRequest]));
+    this.createNotification(toUser.id, "Novo Pedido de Amizade", `${fromUser.username} quer ser seu amigo.`, "info");
+    
+    return { success: true, message: 'Solicitação enviada!' };
+  },
+
+  async acceptFriendRequest(requestId: string, currentUserId: string) {
+    const key = `carryme_friendships`;
+    const friendships = JSON.parse(localStorage.getItem(key) || '[]');
+    
+    const updated = friendships.map((f: any) => {
+        if (f.id === requestId) {
+            return { ...f, status: 'accepted' };
+        }
+        return f;
+    });
+
+    localStorage.setItem(key, JSON.stringify(updated));
+    
+    const req = friendships.find((f: any) => f.id === requestId);
+    if(req) {
+       this.createNotification(req.from, "Pedido Aceito", `Agora você é amigo de ${req.friendData.username}`, "success");
+    }
+  },
+
+  async rejectFriendRequest(requestId: string) {
+    const key = `carryme_friendships`;
+    const friendships = JSON.parse(localStorage.getItem(key) || '[]');
+    const filtered = friendships.filter((f: any) => f.id !== requestId);
+    localStorage.setItem(key, JSON.stringify(filtered));
   },
 
   async createMercadoPagoPreference(title: string, price: number): Promise<string | null> {

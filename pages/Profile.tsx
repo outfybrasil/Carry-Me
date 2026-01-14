@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { STORE_ITEMS } from '../constants';
 import ScoreGauge from '../components/ScoreGauge';
@@ -8,9 +9,10 @@ import { api } from '../services/api';
 interface ProfileProps {
   user: Player; 
   onEquip: (type: 'border' | 'nameColor' | 'banner', itemId: string) => void;
+  onProfileUpdate?: () => void; // New prop for tutorial
 }
 
-const Profile: React.FC<ProfileProps> = ({ user, onEquip }) => {
+const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate }) => {
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [newAvatarUrl, setNewAvatarUrl] = useState('');
   const [updating, setUpdating] = useState(false);
@@ -45,11 +47,23 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip }) => {
   const handleUpdateAvatar = async () => {
     if(!newAvatarUrl) return;
     setUpdating(true);
-    const success = await api.updateAvatar(user.id, newAvatarUrl);
-    if(success) {
-      window.location.reload(); 
+    try {
+        const success = await api.updateAvatar(user.id, newAvatarUrl);
+        if(success) {
+          // Trigger tutorial callback if provided
+          if (onProfileUpdate) onProfileUpdate();
+          
+          // Reload to reflect changes (or we could optimistic update)
+          window.location.reload(); 
+        } else {
+            alert("Erro ao atualizar avatar. Tente uma imagem menor.");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Ocorreu um erro. Tente novamente.");
+    } finally {
+        setUpdating(false);
     }
-    setUpdating(false);
   };
 
   return (

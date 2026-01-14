@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
@@ -15,7 +16,7 @@ import {
   Bell,
   Trophy,
   CheckCircle,
-  Info
+  Users
 } from 'lucide-react';
 import { Player, AppNotification } from '../types';
 import { STORE_ITEMS } from '../constants';
@@ -58,11 +59,19 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
     ? `border-4 ${equippedBorderItem.value}` 
     : `border-2 ${isPremium ? 'border-brand-accent' : 'border-slate-700'}`;
 
+  // Strict unread count based on current state
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleMarkAsRead = async () => {
-      await api.markNotificationRead(user.id);
+      // Optimistically update UI
       setNotifications(prev => prev.map(n => ({...n, read: true})));
+      
+      // Update persistent storage
+      await api.markNotificationRead(user.id);
+      
+      // Force refresh data from storage to ensure sync and prevent interval overrides
+      const syncedData = await api.getNotifications(user.id);
+      setNotifications(syncedData);
   };
 
   const NavItem = ({ page, icon: Icon, label, highlight = false }: { page: string, icon: any, label: string, highlight?: boolean }) => (
@@ -153,6 +162,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
              <div className="space-y-1">
                <NavItem page="dashboard" icon={LayoutDashboard} label="Dashboard" />
                <NavItem page="match" icon={Swords} label="Jogar Agora" />
+               <NavItem page="friends" icon={Users} label="Amigos" />
                <NavItem page="achievements" icon={Trophy} label="Conquistas" />
                <NavItem page="profile" icon={User} label="Meu Perfil" />
                <NavItem page="shop" icon={ShoppingBag} label="Loja" />
@@ -242,9 +252,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
            <div className="relative">
               <button 
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
-                className="p-3 bg-slate-900 border border-slate-800 rounded-full hover:bg-slate-800 transition-colors relative"
+                className={`p-3 rounded-full transition-colors relative ${isNotifOpen ? 'bg-slate-800 border-slate-700' : 'bg-slate-900 border-slate-800 border hover:bg-slate-800'}`}
               >
-                 <Bell size={20} className="text-slate-400" />
+                 <Bell size={20} className={unreadCount > 0 ? 'text-white' : 'text-slate-400'} />
                  {unreadCount > 0 && (
                    <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-[#020202]"></span>
                  )}
@@ -257,12 +267,14 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
                    <div className="absolute right-0 top-14 w-80 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                       <div className="p-4 border-b border-slate-800 flex justify-between items-center">
                          <span className="font-bold text-sm">Notificações</span>
-                         <button onClick={handleMarkAsRead} className="text-xs text-blue-400 hover:underline">Marcar lidas</button>
+                         {unreadCount > 0 && (
+                           <button onClick={handleMarkAsRead} className="text-xs text-blue-400 hover:underline">Marcar lidas</button>
+                         )}
                       </div>
                       <div className="max-h-80 overflow-y-auto custom-scrollbar">
                          {notifications.length > 0 ? (
                             notifications.map(n => (
-                              <div key={n.id} className={`p-4 border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors ${n.read ? 'opacity-50' : 'opacity-100'}`}>
+                              <div key={n.id} className={`p-4 border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors ${n.read ? 'opacity-50' : 'opacity-100 border-l-2 border-l-blue-500 bg-blue-500/5'}`}>
                                  <div className="flex gap-3">
                                     <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${n.type === 'reward' ? 'bg-yellow-400' : n.type === 'success' ? 'bg-green-400' : 'bg-blue-400'}`}></div>
                                     <div>
@@ -308,18 +320,22 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
         
         {/* Mobile Notification Drawer (Simplified) */}
         {isNotifOpen && (
-           <div className="md:hidden fixed inset-0 z-50 bg-slate-950 p-6 overflow-y-auto">
+           <div className="md:hidden fixed inset-0 z-50 bg-slate-950 p-6 overflow-y-auto animate-in slide-in-from-right">
                <div className="flex justify-between items-center mb-6">
                  <h2 className="text-xl font-bold">Notificações</h2>
-                 <button onClick={() => setIsNotifOpen(false)} className="p-2 bg-slate-900 rounded-full"><X/></button>
+                 <div className="flex gap-4">
+                     {unreadCount > 0 && <button onClick={handleMarkAsRead} className="text-xs text-blue-400 font-bold">Marcar lidas</button>}
+                     <button onClick={() => setIsNotifOpen(false)} className="p-2 bg-slate-900 rounded-full"><X/></button>
+                 </div>
                </div>
                <div className="space-y-4">
                   {notifications.map(n => (
-                     <div key={n.id} className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                     <div key={n.id} className={`bg-slate-900 p-4 rounded-xl border border-slate-800 ${n.read ? 'opacity-60' : 'border-l-4 border-l-blue-500'}`}>
                          <h4 className="font-bold text-white mb-1">{n.title}</h4>
                          <p className="text-sm text-slate-400">{n.message}</p>
                      </div>
                   ))}
+                  {notifications.length === 0 && <p className="text-center text-slate-500 mt-10">Tudo limpo por aqui.</p>}
                </div>
            </div>
         )}

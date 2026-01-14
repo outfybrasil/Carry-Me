@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Player, LobbyPlayer, ChatMessage, LobbyConfig } from '../types';
-import { Send, User, Crown, Mic, MicOff, MessageSquare, Play, LogOut, CheckCircle, Clock } from 'lucide-react';
+import { Send, User, Crown, Mic, Clock, MessageSquare, Play, LogOut, CheckCircle, Copy } from 'lucide-react';
 
 interface LobbyRoomProps {
   user: Player;
@@ -10,15 +11,8 @@ interface LobbyRoomProps {
   onLeaveLobby: () => void;
 }
 
-// Bot Personalities for simulation
-const BOTS = [
-  { id: 'b1', username: 'JungleGap_XD', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=jungle', role: 'Jungler', score: 85, messages: ['Salve time', 'Vou de Lee Sin', 'Trust the process'] },
-  { id: 'b2', username: 'AhriMainUwU', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ahri', role: 'Mid', score: 92, messages: ['Mid pref', 'Alguém duo?', 'Boa sorte a todos!'] },
-  { id: 'b3', username: 'TopOrAfk', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=top', role: 'Top', score: 60, messages: ['Top tank', 'Sem gank pls, vou farmar', '...'] },
-  { id: 'b4', username: 'SuppKing', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=supp', role: 'Support', score: 98, messages: ['Bom jogo galera', 'Vou de Lulu pra proteger', 'Foco no dragão'] },
-];
-
 const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame, onLeaveLobby }) => {
+  // Initialize with ONLY the current user
   const [players, setPlayers] = useState<LobbyPlayer[]>([
     {
       id: user.id,
@@ -26,7 +20,7 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
       avatar: user.avatar,
       isHost: isHost,
       isReady: isHost, // Host is ready by default
-      role: 'Flex',
+      role: 'Flex', // Could be dynamic
       score: user.score
     }
   ]);
@@ -36,72 +30,16 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
   const [userReady, setUserReady] = useState(isHost);
   const chatEndRef = useRef<HTMLDivElement>(null);
   
-  // Define max slots based on config
   const maxPlayers = config.maxPlayers || 5;
+  const lobbyLink = `${window.location.origin}/lobby/${Math.random().toString(36).substring(7)}`;
 
   // Auto-scroll chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chat]);
 
-  // Simulate players joining and chatting
-  useEffect(() => {
-    let currentBotIndex = 0;
-
-    const joinInterval = setInterval(() => {
-      // Check against dynamic maxPlayers config
-      if (players.length < maxPlayers && currentBotIndex < BOTS.length) {
-        const bot = BOTS[currentBotIndex];
-        
-        // Add Player
-        setPlayers(prev => [
-          ...prev, 
-          {
-            id: bot.id,
-            username: bot.username,
-            avatar: bot.avatar,
-            isHost: false,
-            isReady: false,
-            role: bot.role,
-            score: bot.score
-          }
-        ]);
-
-        // Add Join Message
-        setChat(prev => [...prev, {
-          id: Date.now().toString(),
-          senderId: 'system',
-          senderName: 'System',
-          text: `${bot.username} entrou no lobby.`,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          isSystem: true
-        }]);
-
-        // Simulate Bot Chat after delay
-        setTimeout(() => {
-           setChat(prev => [...prev, {
-            id: Date.now().toString() + 'msg',
-            senderId: bot.id,
-            senderName: bot.username,
-            text: bot.messages[0],
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-           }]);
-           
-           // Simulate Bot Ready
-           setTimeout(() => {
-             setPlayers(current => current.map(p => p.id === bot.id ? { ...p, isReady: true } : p));
-           }, 2000);
-
-        }, 1500);
-
-        currentBotIndex++;
-      } else {
-        clearInterval(joinInterval);
-      }
-    }, 3000); // New player every 3 seconds
-
-    return () => clearInterval(joinInterval);
-  }, [players.length, maxPlayers]); // Re-run if players change to check count
+  // NO BOT SIMULATION - Real Logic would go here (Supabase Realtime)
+  // For now, it sits static waiting for invites or real backend implementation
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,7 +63,12 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
     setPlayers(prev => prev.map(p => p.id === user.id ? { ...p, isReady: newState } : p));
   };
 
-  const allReady = players.length === maxPlayers && players.every(p => p.isReady);
+  const copyInvite = () => {
+    navigator.clipboard.writeText(lobbyLink);
+    alert("Link do lobby copiado! Envie para seus amigos.");
+  };
+
+  const allReady = players.length > 1 && players.length <= maxPlayers && players.every(p => p.isReady);
 
   return (
     <div className="h-[calc(100vh-100px)] flex flex-col md:flex-row gap-6 max-w-7xl mx-auto">
@@ -136,12 +79,17 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
            <div className="flex justify-between items-center mb-6">
              <div>
                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                 {config.title || 'Lobby'}
+                 {config.title || 'Lobby Privado'}
                </h2>
                <p className="text-slate-400 text-sm">{config.game} • {config.vibe}</p>
              </div>
-             <div className="bg-slate-950 px-4 py-2 rounded-lg border border-slate-800">
-               <span className="text-slate-400 text-sm">Jogadores:</span> <span className="text-white font-bold">{players.length}/{maxPlayers}</span>
+             <div className="flex gap-3">
+               <button onClick={copyInvite} className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-lg border border-slate-700 flex items-center gap-2 text-sm transition-colors">
+                  <Copy size={14} /> Convidar
+               </button>
+               <div className="bg-slate-950 px-4 py-2 rounded-lg border border-slate-800">
+                 <span className="text-slate-400 text-sm">Jogadores:</span> <span className="text-white font-bold">{players.length}/{maxPlayers}</span>
+               </div>
              </div>
            </div>
 
@@ -180,7 +128,7 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
                        </div>
                      </>
                    ) : (
-                     <div className="w-full flex items-center justify-center text-slate-600 gap-2">
+                     <div className="w-full flex items-center justify-center text-slate-600 gap-2 animate-pulse">
                        <User size={18} />
                        <span className="text-sm font-medium">Aguardando Jogador...</span>
                      </div>
@@ -201,13 +149,13 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
              {isHost ? (
                 <button 
                   onClick={onStartGame}
-                  disabled={!allReady}
+                  // For testing alone, we might allow starting, but usually requires > 1
                   className={`flex-1 py-4 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-lg shadow-lg
-                    ${allReady 
+                    ${players.length > 0 // Allow start for testing even alone if needed, or change to players.length > 1
                       ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white shadow-green-500/20' 
                       : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
                 >
-                  <Play size={20} fill="currentColor" /> Iniciar Partida
+                  <Play size={20} fill="currentColor" /> {players.length === 1 ? 'Iniciar (Solo Mode)' : 'Iniciar Partida'}
                 </button>
              ) : (
                 <button 
@@ -233,6 +181,12 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-slate-950/30">
+          {chat.length === 0 && (
+              <div className="text-center text-slate-600 mt-10 text-sm">
+                  <p>A sala está aberta.</p>
+                  <p>Convide amigos para conversar.</p>
+              </div>
+          )}
           {chat.map((msg) => (
             <div key={msg.id} className={`flex flex-col ${msg.isSystem ? 'items-center' : msg.senderId === user.id ? 'items-end' : 'items-start'}`}>
               {msg.isSystem ? (
