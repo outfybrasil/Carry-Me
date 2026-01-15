@@ -20,7 +20,7 @@ import LandingPage from './pages/LandingPage';
 import OnboardingTour from './components/OnboardingTour';
 import { Player, StoreItem, LobbyConfig, Vibe } from './types';
 import { api } from './services/api';
-import { Loader2, LogOut, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Loader2, LogOut, AlertTriangle, RefreshCw, MessageSquare, CheckCircle } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 declare global {
@@ -28,6 +28,32 @@ declare global {
     startMatchHack: () => void;
   }
 }
+
+// --- TOAST COMPONENT ---
+const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'chat' | 'error', onClose: () => void }) => {
+    useEffect(() => {
+        const timer = setTimeout(onClose, 4000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    return (
+        <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-right duration-300">
+            <div className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md ${
+                type === 'chat' ? 'bg-blue-600/90 border-blue-400 text-white' :
+                type === 'success' ? 'bg-green-600/90 border-green-400 text-white' :
+                'bg-red-600/90 border-red-400 text-white'
+            }`}>
+                <div className="p-2 bg-white/20 rounded-full">
+                    {type === 'chat' ? <MessageSquare size={20} /> : <CheckCircle size={20} />}
+                </div>
+                <div>
+                    <h4 className="font-bold text-sm">{type === 'chat' ? 'Nova Mensagem' : 'Notificação'}</h4>
+                    <p className="text-xs opacity-90">{message}</p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const ManifestoModal = ({ onAccept }: { onAccept: () => void }) => (
   <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -64,8 +90,11 @@ const App: React.FC = () => {
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [paymentType, setPaymentType] = useState<'PREMIUM' | 'COINS' | null>(null);
   const [recoveryMode, setRecoveryMode] = useState(false);
-  const [profileError, setProfileError] = useState(false); // New Error State
+  const [profileError, setProfileError] = useState(false);
   
+  // Notification State
+  const [toast, setToast] = useState<{msg: string, type: 'success' | 'chat' | 'error'} | null>(null);
+
   // Onboarding State
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [onboardingTasks, setOnboardingTasks] = useState({
@@ -98,22 +127,34 @@ const App: React.FC = () => {
     }
   };
 
-  const playUiSound = () => {
+  const playUiSound = (type: 'click' | 'notification' = 'click') => {
     if (volume === 0 || !audioContextRef.current) return;
     const ctx = audioContextRef.current;
     const osc = ctx.createOscillator();
     const gainNode = ctx.createGain();
     osc.connect(gainNode);
     gainNode.connect(ctx.destination);
-    osc.type = 'sine';
+    
     const now = ctx.currentTime;
-    osc.frequency.setValueAtTime(800, now);
-    osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
-    const normalizedVolume = (volume / 100) * 0.1;
-    gainNode.gain.setValueAtTime(normalizedVolume, now);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-    osc.start(now);
-    osc.stop(now + 0.1);
+    
+    if (type === 'notification') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(500, now);
+        osc.frequency.linearRampToValueAtTime(1000, now + 0.1);
+        gainNode.gain.setValueAtTime((volume / 100) * 0.2, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+    } else {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+        const normalizedVolume = (volume / 100) * 0.1;
+        gainNode.gain.setValueAtTime(normalizedVolume, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+    }
   };
 
   useEffect(() => {
@@ -127,7 +168,7 @@ const App: React.FC = () => {
         target.getAttribute('role') === 'button'
       ) {
         initAudio();
-        playUiSound();
+        playUiSound('click');
       }
     };
     window.addEventListener('click', handleClick);
@@ -157,13 +198,13 @@ const App: React.FC = () => {
   useEffect(() => {
     let mounted = true;
 
-    // Safety Timeout
+    // Safety Timeout - Increased to 10s to prevent false positives on slow connections
     const safetyTimeout = setTimeout(() => {
         if (mounted && loading) {
             console.warn("Initialization timed out. Forcing UI load.");
             setLoading(false);
         }
-    }, 6000);
+    }, 10000);
 
     const checkHash = () => {
         const hash = window.location.hash;
@@ -195,7 +236,6 @@ const App: React.FC = () => {
               setUser(profile);
               if (!profile.tutorialCompleted) setOnboardingStep(1);
             } else {
-              // FIX: Instead of signing out immediately (loop), show error UI
               console.error("Session valid but profile sync failed.");
               setProfileError(true);
             }
@@ -243,6 +283,36 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // --- REALTIME CHAT LISTENER ---
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase.channel('global_notifications')
+        .on(
+            'postgres_changes',
+            { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'direct_messages',
+                filter: `receiver_id=eq.${user.id}`
+            }, 
+            (payload) => {
+                // If the user is currently looking at the friends page, we might want to let the component handle it,
+                // but showing a toast is always good feedback.
+                playUiSound('notification');
+                setToast({
+                    msg: "Você recebeu uma nova mensagem!",
+                    type: 'chat'
+                });
+            }
+        )
+        .subscribe();
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const handleLoginSuccess = (loggedInUser: Player) => {
     setUser(loggedInUser);
     setShowAuth(false);
@@ -255,10 +325,9 @@ const App: React.FC = () => {
   const handleLogout = async () => {
     setLoading(true);
     await supabase.auth.signOut();
-    setProfileError(false); // Reset error on explicit logout
+    setProfileError(false);
   };
   
-  // Emergency Logout for stuck loading screens
   const forceLogout = async () => {
       await supabase.auth.signOut();
       window.location.reload();
@@ -470,6 +539,16 @@ const App: React.FC = () => {
   return (
     <>
       <CookieConsent />
+      
+      {/* GLOBAL TOAST NOTIFICATION */}
+      {toast && (
+          <Toast 
+              message={toast.msg} 
+              type={toast.type} 
+              onClose={() => setToast(null)} 
+          />
+      )}
+
       <OnboardingTour 
         step={onboardingStep} 
         onNext={handleOnboardingNext} 

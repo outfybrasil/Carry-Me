@@ -344,8 +344,6 @@ export const api = {
   // --- LOBBY CHAT (Interaction) ---
   
   async sendLobbyMessage(lobbyId: string, user: Player, text: string) {
-    // Assuming a 'lobby_messages' table exists. 
-    // If not, it will fail silently or log error, but for MVP launch we provide the code.
     await supabase.from('lobby_messages').insert({
       lobby_id: lobbyId,
       user_id: user.id,
@@ -372,10 +370,37 @@ export const api = {
     }));
   },
 
-  // NEW: Clear chat when game starts
   async clearLobbyChat(lobbyId: string) {
     const { error } = await supabase.from('lobby_messages').delete().eq('lobby_id', lobbyId);
     return !error;
+  },
+
+  // --- DIRECT MESSAGES (CHAT) ---
+  
+  async sendDirectMessage(senderId: string, receiverId: string, text: string) {
+    const { error } = await supabase.from('direct_messages').insert({
+        sender_id: senderId,
+        receiver_id: receiverId,
+        text: text,
+        created_at: new Date().toISOString()
+    });
+    return !error;
+  },
+
+  async getDirectMessages(myId: string, friendId: string): Promise<ChatMessage[]> {
+      const { data } = await supabase.from('direct_messages')
+        .select('*')
+        .or(`and(sender_id.eq.${myId},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${myId})`)
+        .order('created_at', { ascending: true })
+        .limit(50);
+    
+      return (data || []).map((msg: any) => ({
+          id: msg.id,
+          senderId: msg.sender_id,
+          senderName: '', // Handled by UI context
+          text: msg.text,
+          timestamp: new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+      }));
   },
 
   // --- NOTIFICATIONS & FRIENDS ---
@@ -393,6 +418,17 @@ export const api = {
 
   async createNotification(userId: string, title: string, message: string, type: any) {
     await supabase.from('notifications').insert({ user_id: userId, title, message, type, read: false, created_at: new Date().toISOString() });
+  },
+
+  // Helper for game invites
+  async sendGameInvite(fromUser: Player, toUserId: string, gameName: string = "uma partida") {
+      await this.createNotification(
+          toUserId, 
+          "Convite de Jogo", 
+          `${fromUser.username} te convidou para jogar ${gameName}.`, 
+          "success"
+      );
+      return true;
   },
 
   async searchUsers(query: string, currentUserId: string): Promise<Friend[]> {
