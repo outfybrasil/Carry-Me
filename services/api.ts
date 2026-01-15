@@ -23,7 +23,7 @@ const getEmptyAdvancedStats = (): AdvancedStats => {
 
 // Helper to transform DB shape to App shape
 const transformProfile = (data: any, inventory: any[]): Player => {
-  const dbInventoryIds = inventory.map((i: any) => i.item_id);
+  const dbInventoryIds = (inventory || []).map((i: any) => i.item_id);
   
   const defaultStats = {
     matchesPlayed: 0,
@@ -140,44 +140,66 @@ export const api = {
   },
 
   async checkSession(): Promise<Player | null> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return null;
-    return await this.syncUserProfile(session.user);
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error || !session?.user) return null;
+      return await this.syncUserProfile(session.user);
+    } catch (e) {
+      console.error("Check session error:", e);
+      return null;
+    }
   },
 
   async syncUserProfile(user: any): Promise<Player | null> {
-    const userId = user.id;
-    let { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+    try {
+        const userId = user.id;
+        
+        // 1. Try fetching profile
+        let { data: profile, error: fetchError } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
 
-    if (!profile) {
-      const meta = user.user_metadata || {};
-      let username = meta.custom_claims?.global_name || meta.full_name || meta.username || user.email?.split('@')[0] || 'Gamer';
-      const avatar = meta.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
-      const email = user.email;
+        // 2. If network error or unknown, retry once or fail gracefully
+        if (fetchError && fetchError.code !== 'PGRST116') {
+            console.error("Fetch profile error:", fetchError);
+            return null; // Stop infinite loading
+        }
 
-      const { data: newProfile, error } = await supabase
-          .from('profiles')
-          .insert([{ 
-              id: userId, 
-              username, 
-              email, 
-              avatar, 
-              score: 50, 
-              coins: 0, 
-              tutorial_completed: false 
-          }])
-          .select().single();
-      
-      if (error) {
-          console.error("Error creating profile:", error);
-          return null;
-      }
-      profile = newProfile;
-    } 
-    
-    if (!profile) return null;
-    const { data: inventory } = await supabase.from('inventory').select('item_id').eq('user_id', userId);
-    return transformProfile(profile, inventory || []);
+        // 3. Create profile if it doesn't exist
+        if (!profile) {
+          const meta = user.user_metadata || {};
+          let username = meta.custom_claims?.global_name || meta.full_name || meta.username || user.email?.split('@')[0] || 'Gamer';
+          const avatar = meta.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+          const email = user.email;
+
+          const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert([{ 
+                  id: userId, 
+                  username, 
+                  email, 
+                  avatar, 
+                  score: 50, 
+                  coins: 0, 
+                  tutorial_completed: false 
+              }])
+              .select().single();
+          
+          if (createError) {
+              console.error("Error creating profile:", createError);
+              return null;
+          }
+          profile = newProfile;
+        } 
+        
+        if (!profile) return null;
+
+        // 4. Fetch inventory (safely)
+        const { data: inventory } = await supabase.from('inventory').select('item_id').eq('user_id', userId);
+        
+        return transformProfile(profile, inventory || []);
+    } catch (e) {
+        console.error("Sync profile unexpected error:", e);
+        return null;
+    }
   },
 
   async updateAvatar(userId: string, newUrl: string) {
@@ -390,7 +412,10 @@ export const api = {
   async sendFriendRequest(fromUser: Player, toUser: Friend) {
     const { data: existing } = await supabase.from('friendships').select('id').or(`and(user_id_1.eq.${fromUser.id},user_id_2.eq.${toUser.id}),and(user_id_1.eq.${toUser.id},user_id_2.eq.${fromUser.id})`).maybeSingle();
     if (existing) return { success: false, message: 'Já existe uma conexão entre vocês.' };
-    const { error } = await supabase.from('friendships').insert({ user_id: fromUser.id, user_id_2: toUser.id, status: 'pending' });
+    
+    // CORRECTION: user_id -> user_id_1
+    const { error } = await supabase.from('friendships').insert({ user_id_1: fromUser.id, user_id_2: toUser.id, status: 'pending' });
+    
     if (error) return { success: false, message: 'Erro ao enviar.' };
     this.createNotification(toUser.id, "Nova Solicitação", `${fromUser.username} quer ser seu amigo.`, "info");
     return { success: true, message: 'Solicitação enviada!' };

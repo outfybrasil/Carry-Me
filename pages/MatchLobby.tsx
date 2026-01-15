@@ -14,7 +14,7 @@ interface MatchLobbyProps {
 
 const GAMES = [
   { id: 'lol', name: 'League of Legends', color: 'from-blue-600 to-blue-400', icon: 'https://img.icons8.com/color/96/league-of-legends.png', maxLimit: 5 },
-  { id: 'cs2', name: 'CS2', color: 'from-orange-600 to-yellow-500', icon: 'https://static.wikia.nocookie.net/logopedia/images/4/49/Counter-Strike_2_%28Icon%29.png/revision/latest?cb=20230330015359', maxLimit: 5 },
+  { id: 'cs2', name: 'CS2', color: 'from-orange-600 to-yellow-500', icon: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Counter-Strike_2_logo.svg/240px-Counter-Strike_2_logo.svg.png', maxLimit: 5 },
   { id: 'valorant', name: 'Valorant', color: 'from-red-600 to-rose-500', icon: 'https://img.icons8.com/color/96/valorant.png', maxLimit: 5 },
   { id: 'apex', name: 'Apex Legends', color: 'from-red-700 to-orange-600', icon: 'https://www.pngall.com/wp-content/uploads/13/Apex-Legends-Logo-PNG-Cutout.png', maxLimit: 3 },
   { id: 'r6', name: 'Rainbow Six Siege', color: 'from-slate-700 to-slate-500', icon: 'https://img.icons8.com/color/96/rainbow-six-siege.png', maxLimit: 5 }

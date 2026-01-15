@@ -168,96 +168,105 @@ const App: React.FC = () => {
     }
   }, [onboardingTasks, onboardingStep]);
 
+  // AUTHENTICATION & INITIALIZATION LOGIC
   useEffect(() => {
-    // Safety Timeout: Force stop loading after 6 seconds if nothing happens
-    // This prevents "infinite loading" if auth callbacks fail or network hangs
-    const safetyTimeout = setTimeout(() => {
-      setLoading(false);
-    }, 6000);
+    let mounted = true;
 
-    // 1. Manual Check for Recovery URL (Crucial Fix)
+    // 1. Manual Check for Recovery URL
     const hash = window.location.hash;
     const query = window.location.search;
     
     if ((hash && hash.includes('type=recovery')) || (query && query.includes('type=recovery'))) {
-      console.log("Modo de recuperação detectado via URL");
       setRecoveryMode(true);
+      setLoading(false);
+      return; // Stop further processing if recovering
     }
 
-    // 2. Initial Session Check
-    const initSession = async () => {
+    // 2. Deterministic Initialization
+    const initialize = async () => {
       try {
-        const sessionUser = await api.checkSession();
-        if (sessionUser) {
-          setUser(sessionUser);
-          // Trigger onboarding if not completed
-          if (!sessionUser.tutorialCompleted) {
-             setOnboardingStep(1);
+        // Attempt to get the session from local storage/API
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error getting session:", error);
+          if (mounted) setLoading(false);
+          return;
+        }
+
+        if (session?.user) {
+          // If we have a user, fetch their detailed profile
+          const profile = await api.syncUserProfile(session.user);
+          if (mounted) {
+            if (profile) {
+              setUser(profile);
+              if (!profile.tutorialCompleted) setOnboardingStep(1);
+            }
+            // Clear URL fragment if it contained access token to prevent re-parsing issues
+            if (window.location.hash && window.location.hash.includes('access_token')) {
+               window.history.replaceState(null, '', window.location.pathname);
+            }
           }
         }
       } catch (e) {
-        console.error("Session check failed", e);
+        console.error("Initialization failed:", e);
       } finally {
-        // If we are waiting for an OAuth redirect (access_token in hash), don't stop loading yet
-        // allow onAuthStateChange to handle it to avoid flickering Landing Page
-        if (!window.location.hash || !window.location.hash.includes('access_token')) {
-           setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     };
 
-    initSession();
+    initialize();
 
-    // 3. Listen for Auth Changes
+    // 3. Listen for Auth Changes (Sign In, Sign Out, Auto-Refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setRecoveryMode(true);
-        setLoading(false);
-      } else if (event === 'SIGNED_IN' && session?.user) {
-        
-        // Clean URL if we have an access token to prevent re-processing
-        if (window.location.hash && window.location.hash.includes('access_token')) {
-            window.history.replaceState(null, '', window.location.pathname);
-        }
-
-        const profile = await api.syncUserProfile(session.user);
-        if (profile) {
+      // Only react to specific events after initial load to avoid double-fetching
+      if (event === 'SIGNED_IN' && session?.user && !user) {
+         // User just signed in (or was found by the listener before getSession finished)
+         setLoading(true);
+         const profile = await api.syncUserProfile(session.user);
+         if (profile) {
             setUser(profile);
             if (!profile.tutorialCompleted) setOnboardingStep(1);
-        }
-        setShowAuth(false);
-        setLoading(false);
+         }
+         setLoading(false);
       } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setLoading(false);
+         setUser(null);
+         setLoading(false);
+         setCurrentPage('dashboard');
+      } else if (event === 'PASSWORD_RECOVERY') {
+         setRecoveryMode(true);
+         setLoading(false);
       }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
-      clearTimeout(safetyTimeout);
     };
-  }, []);
+  }, []); // Empty dependency array: runs once on mount
 
   const handleLoginSuccess = (loggedInUser: Player) => {
     setUser(loggedInUser);
     setShowAuth(false);
     setRecoveryMode(false);
     if (!loggedInUser.tutorialCompleted) setOnboardingStep(1);
-    // Remove hash from url to prevent loop if refreshed
     window.history.replaceState(null, '', window.location.pathname);
   };
 
   const handleLogout = async () => {
+    setLoading(true);
     await supabase.auth.signOut();
-    setUser(null);
-    setCurrentPage('dashboard');
+    // State update handled by onAuthStateChange('SIGNED_OUT')
   };
 
   const refreshUser = async () => {
     if (!user) return;
-    const updated = await api.checkSession();
-    if (updated) setUser(updated);
+    try {
+        const updated = await api.checkSession();
+        if (updated) setUser(updated);
+    } catch (e) {
+        console.error("Failed to refresh user", e);
+    }
   };
 
   const handleVoteComplete = () => {
