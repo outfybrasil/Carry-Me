@@ -51,10 +51,31 @@ export interface PlayerStats {
   perfectBehaviorStreak: number;
 }
 
+export interface MatchHistoryPoint {
+  date: string;
+  rating: number; // For the line chart
+  kda: number;
+}
+
+export interface AdvancedStats {
+  headshotPct: number;
+  adr: number; // Average Damage per Round
+  kast: number; // Kill, Assist, Survive, Trade %
+  entrySuccess: number;
+  clutchSuccess: number;
+  radar: {
+    subject: string;
+    A: number; // User value
+    fullMark: number;
+  }[];
+}
+
 export interface Player {
   id: string;
   username: string;
   avatar: string;
+  riotId?: string; // NEW
+  steamId?: string; // NEW
   score: number; // -100 to 100
   badges: string[];
   isSherpa?: boolean;
@@ -69,6 +90,9 @@ export interface Player {
     banner?: string; // Item ID
   };
   stats: PlayerStats;
+  // NEW: Premium Stats Data
+  matchHistory: MatchHistoryPoint[];
+  advancedStats: AdvancedStats;
   claimedAchievements: string[]; // List of Achievement IDs
 }
 

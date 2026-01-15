@@ -2,9 +2,23 @@
 import React, { useState } from 'react';
 import { STORE_ITEMS } from '../constants';
 import ScoreGauge from '../components/ScoreGauge';
-import { Paintbrush, Check, Camera, X, Upload, Award, Coins } from 'lucide-react';
+import { Paintbrush, Check, Camera, X, Upload, Award, Coins, TrendingUp, Lock, Crown, Crosshair, Target, Shield, Activity } from 'lucide-react';
 import { Player, ItemType } from '../types';
 import { api } from '../services/api';
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from 'recharts';
 
 interface ProfileProps {
   user: Player; 
@@ -28,6 +42,8 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate }) => 
   const activeBanner = getEquippedItem(user.equipped.banner);
   const activeBorder = getEquippedItem(user.equipped.border);
   const activeColor = getEquippedItem(user.equipped.nameColor);
+  
+  const isPremium = user.isPremium;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -50,11 +66,9 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate }) => 
     try {
         const success = await api.updateAvatar(user.id, newAvatarUrl);
         if(success) {
-          // Trigger tutorial callback if provided
+          setIsAvatarModalOpen(false);
+          // Trigger tutorial callback if provided. This updates Parent state.
           if (onProfileUpdate) onProfileUpdate();
-          
-          // Reload to reflect changes (or we could optimistic update)
-          window.location.reload(); 
         } else {
             alert("Erro ao atualizar avatar. Tente uma imagem menor.");
         }
@@ -150,27 +164,117 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate }) => 
           </div>
         </div>
 
-        {/* Right Column: Customization & Real Data Stats */}
+        {/* Right Column: Premium Analytics (GC Style) & Customization */}
         <div className="lg:col-span-2 space-y-6">
            
-           {/* Real Stats Grid */}
-           <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex items-center gap-4">
-                 <div className="p-4 bg-yellow-500/10 rounded-full text-yellow-500">
-                    <Coins size={32} />
+           {/* PREMIUM ANALYTICS SECTION */}
+           <div className={`relative bg-slate-900 border rounded-2xl p-6 overflow-hidden ${isPremium ? 'border-brand-accent/30' : 'border-slate-800'}`}>
+              
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6">
+                 <div className="flex items-center gap-3">
+                     <div className={`p-2 rounded-lg ${isPremium ? 'bg-brand-accent/20 text-brand-accent' : 'bg-slate-800 text-slate-400'}`}>
+                        <TrendingUp size={24} />
+                     </div>
+                     <div>
+                        <h3 className={`text-xl font-bold ${isPremium ? 'text-white' : 'text-slate-300'}`}>Premium Analytics</h3>
+                        <p className="text-xs text-slate-500">Performance Detalhada</p>
+                     </div>
                  </div>
-                 <div>
-                    <h3 className="text-3xl font-bold text-white">{user.coins}</h3>
-                    <p className="text-sm text-slate-400 uppercase tracking-wider font-semibold">CarryCoins</p>
-                 </div>
+                 {isPremium && (
+                   <div className="px-3 py-1 rounded-full border border-brand-accent/30 bg-brand-accent/10 text-brand-accent text-xs font-bold flex items-center gap-1">
+                      <Crown size={12} /> ATIVO
+                   </div>
+                 )}
               </div>
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex items-center gap-4">
-                 <div className="p-4 bg-purple-500/10 rounded-full text-purple-500">
-                    <Award size={32} />
+
+              {/* LOCK OVERLAY FOR NON-PREMIUM */}
+              {!isPremium && (
+                <div className="absolute inset-0 z-10 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center text-center p-8">
+                   <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 border border-slate-700 shadow-xl">
+                      <Lock className="text-slate-400" size={32} />
+                   </div>
+                   <h3 className="text-2xl font-bold text-white mb-2">Estatísticas Bloqueadas</h3>
+                   <p className="text-slate-400 max-w-md mb-6">
+                     Assinantes Premium têm acesso a gráficos detalhados de evolução, mapas de calor e análise de desempenho estilo Pro.
+                   </p>
+                   <button className="px-8 py-3 bg-gradient-to-r from-brand-accent to-purple-600 text-white font-bold rounded-xl shadow-lg shadow-purple-500/20 hover:scale-105 transition-transform">
+                     Desbloquear Premium Agora
+                   </button>
+                </div>
+              )}
+
+              {/* ANALYTICS CONTENT (Blurred if locked) */}
+              <div className={!isPremium ? 'filter blur-md pointer-events-none opacity-50' : ''}>
+                 
+                 {/* Top Stats Grid */}
+                 <div className="grid grid-cols-4 gap-4 mb-8">
+                    <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
+                       <div className="text-xs text-slate-500 uppercase font-bold mb-1 flex items-center gap-1"><Crosshair size={12}/> HS%</div>
+                       <div className="text-2xl font-mono font-bold text-white">{user.advancedStats.headshotPct}%</div>
+                    </div>
+                    <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
+                       <div className="text-xs text-slate-500 uppercase font-bold mb-1 flex items-center gap-1"><Target size={12}/> ADR</div>
+                       <div className="text-2xl font-mono font-bold text-blue-400">{user.advancedStats.adr}</div>
+                    </div>
+                    <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
+                       <div className="text-xs text-slate-500 uppercase font-bold mb-1 flex items-center gap-1"><Shield size={12}/> KAST</div>
+                       <div className="text-2xl font-mono font-bold text-green-400">{user.advancedStats.kast}%</div>
+                    </div>
+                    <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
+                       <div className="text-xs text-slate-500 uppercase font-bold mb-1 flex items-center gap-1"><Activity size={12}/> Entry</div>
+                       <div className="text-2xl font-mono font-bold text-yellow-400">{user.advancedStats.entrySuccess}%</div>
+                    </div>
                  </div>
-                 <div>
-                    <h3 className="text-3xl font-bold text-white">{user.badges.length}</h3>
-                    <p className="text-sm text-slate-400 uppercase tracking-wider font-semibold">Insígnias</p>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[300px]">
+                    {/* Rating History Chart */}
+                    <div className="bg-slate-950/30 rounded-xl p-4 border border-slate-800 flex flex-col">
+                       <h4 className="text-sm font-bold text-slate-300 mb-4">Evolução de Rating</h4>
+                       <div className="flex-1 w-full min-h-0">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={user.matchHistory}>
+                              <defs>
+                                <linearGradient id="colorRating" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                              <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                              <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} domain={['dataMin - 10', 'dataMax + 10']} />
+                              <Tooltip 
+                                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#fff' }}
+                                itemStyle={{ color: '#10b981' }}
+                              />
+                              <Area type="monotone" dataKey="rating" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorRating)" />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                       </div>
+                    </div>
+
+                    {/* Radar Chart Playstyle */}
+                    <div className="bg-slate-950/30 rounded-xl p-4 border border-slate-800 flex flex-col">
+                       <h4 className="text-sm font-bold text-slate-300 mb-4">Estilo de Jogo</h4>
+                       <div className="flex-1 w-full min-h-0">
+                          <ResponsiveContainer width="100%" height="100%">
+                             <RadarChart cx="50%" cy="50%" outerRadius="70%" data={user.advancedStats.radar}>
+                                <PolarGrid stroke="#334155" />
+                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                                <Radar
+                                  name={user.username}
+                                  dataKey="A"
+                                  stroke="#8b5cf6"
+                                  strokeWidth={2}
+                                  fill="#8b5cf6"
+                                  fillOpacity={0.4}
+                                />
+                                <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#fff' }} />
+                             </RadarChart>
+                          </ResponsiveContainer>
+                       </div>
+                    </div>
                  </div>
               </div>
            </div>

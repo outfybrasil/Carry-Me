@@ -67,6 +67,12 @@ const App: React.FC = () => {
   
   // Onboarding State
   const [onboardingStep, setOnboardingStep] = useState(0);
+  // Track specific sub-tasks for step 2
+  const [onboardingTasks, setOnboardingTasks] = useState({
+    avatar: false,
+    shop: false,
+    match: false
+  });
 
   // Lobby Config State
   const [currentLobbyConfig, setCurrentLobbyConfig] = useState<LobbyConfig>({
@@ -140,7 +146,35 @@ const App: React.FC = () => {
     return () => window.removeEventListener('click', handleClick);
   }, [volume]);
 
+  // ONBOARDING TASK TRACKER
   useEffect(() => {
+    // Check navigation based tasks
+    if (onboardingStep === 2) {
+      if (currentPage === 'shop' && !onboardingTasks.shop) {
+        setOnboardingTasks(prev => ({ ...prev, shop: true }));
+      }
+      if (currentPage === 'match' && !onboardingTasks.match) {
+        setOnboardingTasks(prev => ({ ...prev, match: true }));
+      }
+    }
+  }, [currentPage, onboardingStep]);
+
+  // COMPLETE ONBOARDING STEP 2
+  useEffect(() => {
+    if (onboardingStep === 2) {
+      if (onboardingTasks.avatar && onboardingTasks.shop && onboardingTasks.match) {
+        setOnboardingStep(3); // All tasks done, move to reward
+      }
+    }
+  }, [onboardingTasks, onboardingStep]);
+
+  useEffect(() => {
+    // Safety Timeout: Force stop loading after 6 seconds if nothing happens
+    // This prevents "infinite loading" if auth callbacks fail or network hangs
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 6000);
+
     // 1. Manual Check for Recovery URL (Crucial Fix)
     const hash = window.location.hash;
     const query = window.location.search;
@@ -152,15 +186,24 @@ const App: React.FC = () => {
 
     // 2. Initial Session Check
     const initSession = async () => {
-      const sessionUser = await api.checkSession();
-      if (sessionUser) {
-        setUser(sessionUser);
-        // Trigger onboarding if not completed
-        if (!sessionUser.tutorialCompleted) {
-           setOnboardingStep(1);
+      try {
+        const sessionUser = await api.checkSession();
+        if (sessionUser) {
+          setUser(sessionUser);
+          // Trigger onboarding if not completed
+          if (!sessionUser.tutorialCompleted) {
+             setOnboardingStep(1);
+          }
+        }
+      } catch (e) {
+        console.error("Session check failed", e);
+      } finally {
+        // If we are waiting for an OAuth redirect (access_token in hash), don't stop loading yet
+        // allow onAuthStateChange to handle it to avoid flickering Landing Page
+        if (!window.location.hash || !window.location.hash.includes('access_token')) {
+           setLoading(false);
         }
       }
-      setLoading(false);
     };
 
     initSession();
@@ -169,19 +212,31 @@ const App: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         setRecoveryMode(true);
+        setLoading(false);
       } else if (event === 'SIGNED_IN' && session?.user) {
+        
+        // Clean URL if we have an access token to prevent re-processing
+        if (window.location.hash && window.location.hash.includes('access_token')) {
+            window.history.replaceState(null, '', window.location.pathname);
+        }
+
         const profile = await api.syncUserProfile(session.user);
         if (profile) {
             setUser(profile);
             if (!profile.tutorialCompleted) setOnboardingStep(1);
         }
         setShowAuth(false);
+        setLoading(false);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
+        setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(safetyTimeout);
+    };
   }, []);
 
   const handleLoginSuccess = (loggedInUser: Player) => {
@@ -284,7 +339,7 @@ const App: React.FC = () => {
   // ONBOARDING HANDLERS
   const handleOnboardingNext = async () => {
     if (onboardingStep === 1) {
-        setOnboardingStep(2); // Go to Profile Task
+        setOnboardingStep(2); // Start Missions
     } else if (onboardingStep === 3) {
         if(user) {
             await api.completeTutorial(user.id);
@@ -296,13 +351,13 @@ const App: React.FC = () => {
 
   const handleOnboardingNavigate = (page: string) => {
       setCurrentPage(page);
-      // Don't close onboarding step 2 yet, wait for action
   };
 
   // Called by Profile page when avatar changes
   const handleProfileUpdated = () => {
       if (onboardingStep === 2) {
-          setOnboardingStep(3); // Show reward
+          setOnboardingTasks(prev => ({...prev, avatar: true}));
+          refreshUser(); // Update UI immediately without reload
       }
   };
 
@@ -395,6 +450,7 @@ const App: React.FC = () => {
         onNext={handleOnboardingNext} 
         onNavigate={handleOnboardingNavigate}
         currentPage={currentPage}
+        tasks={onboardingTasks}
       />
       
       {!hasAcceptedManifesto && !onboardingStep && <ManifestoModal onAccept={() => setHasAcceptedManifesto(true)} />}

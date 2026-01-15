@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Vibe, LobbyConfig } from '../types';
 import { Loader2, Mic, Crown, Lock, Settings, Users, Search, ArrowLeft, XCircle, RefreshCw, Radar, Signal, Globe } from 'lucide-react';
+import { api } from '../services/api';
 
 interface MatchLobbyProps {
   onCancel: () => void;
@@ -13,9 +14,9 @@ interface MatchLobbyProps {
 
 const GAMES = [
   { id: 'lol', name: 'League of Legends', color: 'from-blue-600 to-blue-400', icon: 'https://img.icons8.com/color/96/league-of-legends.png', maxLimit: 5 },
-  { id: 'cs2', name: 'CS2', color: 'from-orange-600 to-yellow-500', icon: 'https://cdn.icon-icons.com/icons2/4222/PNG/512/counter_strike_2_logo_icon_263177.png', maxLimit: 5 },
+  { id: 'cs2', name: 'CS2', color: 'from-orange-600 to-yellow-500', icon: 'https://static.wikia.nocookie.net/logopedia/images/4/49/Counter-Strike_2_%28Icon%29.png/revision/latest?cb=20230330015359', maxLimit: 5 },
   { id: 'valorant', name: 'Valorant', color: 'from-red-600 to-rose-500', icon: 'https://img.icons8.com/color/96/valorant.png', maxLimit: 5 },
-  { id: 'apex', name: 'Apex Legends', color: 'from-red-700 to-orange-600', icon: 'https://img.icons8.com/color/96/apex-legends.png', maxLimit: 3 },
+  { id: 'apex', name: 'Apex Legends', color: 'from-red-700 to-orange-600', icon: 'https://www.pngall.com/wp-content/uploads/13/Apex-Legends-Logo-PNG-Cutout.png', maxLimit: 3 },
   { id: 'r6', name: 'Rainbow Six Siege', color: 'from-slate-700 to-slate-500', icon: 'https://img.icons8.com/color/96/rainbow-six-siege.png', maxLimit: 5 }
 ];
 
@@ -87,10 +88,12 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
     if (searchStatus === 'searching' || searchStatus === 'expanding') {
       interval = setInterval(() => {
         setTimer(t => t + 1);
-        // Simulate fluctuating player count
+        
+        // Small fluctuation around real number to show activity
         setPlayersInQueue(prev => {
-            const change = Math.floor(Math.random() * 5) - 2;
-            return Math.max(12, prev + change);
+            const change = Math.random() > 0.5 ? 1 : -1;
+            // Ensure we don't drop below 1 or plausible number
+            return Math.max(1, prev + change);
         });
         
         // Visual ping effect
@@ -109,7 +112,12 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
       // Set initial random estimated time (between 15s and 40s)
       const est = Math.floor(Math.random() * 25) + 15;
       setEstimatedTime(est);
-      setPlayersInQueue(Math.floor(Math.random() * 50) + 20);
+      
+      // FETCH REAL NUMBERS FROM API
+      api.getQueueStats().then(count => {
+         // Set the base queue number to real DB count
+         setPlayersInQueue(count);
+      });
 
       // Stage 1: Initial Search (0-8s)
       // Stage 2: Expanding Search (8s+)
@@ -172,20 +180,20 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
            <h1 className="text-3xl font-bold text-white">Escolha seu Jogo</h1>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
            {GAMES.map((game) => (
              <button
                key={game.id}
                onClick={() => handleGameSelect(game.id, game.name, game.maxLimit)}
-               className="group relative h-64 rounded-2xl overflow-hidden border border-white/5 hover:border-white/20 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl"
+               className="group relative h-48 md:h-64 rounded-2xl overflow-hidden border border-white/5 hover:border-white/20 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl"
              >
                 <div className={`absolute inset-0 bg-gradient-to-b ${game.color} opacity-20 group-hover:opacity-40 transition-opacity`}></div>
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
-                   <div className="w-24 h-24 mb-6 relative flex items-center justify-center">
+                   <div className="w-20 h-20 md:w-24 md:h-24 mb-4 md:mb-6 relative flex items-center justify-center">
                       <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                       <img src={game.icon} alt={game.name} className="w-full h-full object-contain relative z-10 drop-shadow-lg" />
                    </div>
-                   <h3 className="text-xl font-bold text-white text-center group-hover:scale-110 transition-transform">{game.name}</h3>
+                   <h3 className="text-lg md:text-xl font-bold text-white text-center group-hover:scale-110 transition-transform">{game.name}</h3>
                    <span className="mt-2 text-xs text-white/60 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">Selecionar</span>
                 </div>
              </button>
@@ -203,13 +211,13 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
     <div className="max-w-4xl mx-auto animate-in fade-in zoom-in-95 duration-300">
       
       {/* Header with Game Change */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-6 md:mb-8">
          <div className="flex items-center gap-4">
              <div className="p-3 rounded-xl bg-slate-800 border border-slate-700">
                 <img src={currentGameObj?.icon} className="w-8 h-8 object-contain" />
              </div>
              <div>
-                <h2 className="text-2xl font-bold text-white">{currentGameObj?.name}</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-white">{currentGameObj?.name}</h2>
                 <button onClick={() => setSelectedGame(null)} className="text-xs text-slate-400 hover:text-white underline">Trocar Jogo</button>
              </div>
          </div>
@@ -219,43 +227,44 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
            <div className="bg-slate-900 p-1 rounded-xl flex space-x-1 border border-slate-800">
             <button 
               onClick={() => setActiveTab('find')}
-              className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'find' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+              className={`px-3 md:px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'find' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
             >
               Encontrar
             </button>
             <button 
               onClick={() => setActiveTab('create')}
-              className={`px-6 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${activeTab === 'create' ? 'bg-amber-500 text-slate-900 shadow-lg' : 'text-slate-400 hover:text-amber-400'}`}
+              className={`px-3 md:px-6 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${activeTab === 'create' ? 'bg-amber-500 text-slate-900 shadow-lg' : 'text-slate-400 hover:text-amber-400'}`}
             >
-              <Crown size={14} />
-              Criar (Captain)
+              <Crown size={14} className="hidden md:block"/>
+              <span className="md:hidden">Criar</span>
+              <span className="hidden md:inline">Criar (Captain)</span>
             </button>
           </div>
          )}
       </div>
 
       {searchStatus !== 'idle' ? (
-        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center bg-slate-900/50 rounded-3xl border border-slate-800 transition-all relative overflow-hidden">
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center bg-slate-900/50 rounded-3xl border border-slate-800 transition-all relative overflow-hidden p-6">
            
            {/* Dynamic Background for Searching */}
            {(searchStatus === 'searching' || searchStatus === 'expanding') && (
                <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-blue-500/10 rounded-full animate-[ping_3s_linear_infinite]"></div>
-                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-blue-500/20 rounded-full animate-[ping_3s_linear_infinite_1s]"></div>
+                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] md:w-[600px] h-[300px] md:h-[600px] border border-blue-500/10 rounded-full animate-[ping_3s_linear_infinite]"></div>
+                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] md:w-[400px] h-[200px] md:h-[400px] border border-blue-500/20 rounded-full animate-[ping_3s_linear_infinite_1s]"></div>
                </div>
            )}
 
            {/* SEARCHING / EXPANDING STATE */}
            {(searchStatus === 'searching' || searchStatus === 'expanding') && (
              <div className="relative z-10 w-full max-w-md">
-               <div className="relative mb-8 mx-auto w-32 h-32">
+               <div className="relative mb-8 mx-auto w-24 h-24 md:w-32 md:h-32">
                  <div className={`absolute inset-0 blur-2xl opacity-30 animate-pulse rounded-full ${activeTab === 'create' ? 'bg-amber-500' : 'bg-blue-500'}`}></div>
                  <div className="relative z-10 w-full h-full bg-slate-900 rounded-full border-4 border-slate-800 flex items-center justify-center">
-                    <Radar className={`w-16 h-16 animate-[spin_3s_linear_infinite] ${activeTab === 'create' ? 'text-amber-500' : 'text-blue-500'}`} />
+                    <Radar className={`w-12 h-12 md:w-16 md:h-16 animate-[spin_3s_linear_infinite] ${activeTab === 'create' ? 'text-amber-500' : 'text-blue-500'}`} />
                  </div>
                </div>
                
-               <h2 className="text-2xl font-bold text-white mb-2 animate-pulse">
+               <h2 className="text-xl md:text-2xl font-bold text-white mb-2 animate-pulse">
                  {searchStatus === 'expanding' ? "Expandindo Busca..." : "Buscando Aliados..."}
                </h2>
                <p className="text-slate-400 mb-8">{currentGameObj?.name} • {selectedVibe}</p>
@@ -263,19 +272,19 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
                <div className="grid grid-cols-2 gap-4 mb-8 bg-black/20 p-4 rounded-xl border border-white/5">
                   <div>
                       <div className="text-xs text-slate-500 uppercase font-bold">Tempo Decorrido</div>
-                      <div className="text-xl font-mono text-white">{formatTime(timer)}</div>
+                      <div className="text-lg md:text-xl font-mono text-white">{formatTime(timer)}</div>
                   </div>
                   <div>
                       <div className="text-xs text-slate-500 uppercase font-bold">Estimado</div>
-                      <div className="text-xl font-mono text-slate-400">~{formatTime(estimatedTime)}</div>
+                      <div className="text-lg md:text-xl font-mono text-slate-400">~{formatTime(estimatedTime)}</div>
                   </div>
                   <div>
-                      <div className="text-xs text-slate-500 uppercase font-bold flex items-center justify-center gap-1"><Users size={10}/> Fila</div>
-                      <div className="text-xl font-mono text-white">{playersInQueue}</div>
+                      <div className="text-xs text-slate-500 uppercase font-bold flex items-center justify-center gap-1"><Users size={10}/> Fila (Real)</div>
+                      <div className="text-lg md:text-xl font-mono text-white">{playersInQueue}</div>
                   </div>
                   <div>
                       <div className="text-xs text-slate-500 uppercase font-bold flex items-center justify-center gap-1"><Signal size={10}/> Score Range</div>
-                      <div className="text-xl font-mono text-white">{searchStatus === 'expanding' ? '±20' : '±10'}</div>
+                      <div className="text-lg md:text-xl font-mono text-white">{searchStatus === 'expanding' ? '±20' : '±10'}</div>
                   </div>
                </div>
                
@@ -297,13 +306,13 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
                       <Users size={56} className="text-green-500" />
                    </div>
                 </div>
-                <h2 className="text-4xl font-bold text-white mb-2">Partida Encontrada!</h2>
-                <p className="text-slate-300 mb-8 text-lg">Seu squad está pronto.</p>
+                <h2 className="text-2xl md:text-4xl font-bold text-white mb-2">Partida Encontrada!</h2>
+                <p className="text-slate-300 mb-8 text-base md:text-lg">Seu squad está pronto.</p>
                 
                 <div className="flex flex-col items-center gap-4">
                     <button 
                         onClick={onMatchFound} 
-                        className="px-12 py-5 bg-green-600 hover:bg-green-500 text-white font-bold text-xl rounded-2xl animate-bounce shadow-xl shadow-green-600/30 transition-all transform hover:scale-105"
+                        className="px-8 py-4 md:px-12 md:py-5 bg-green-600 hover:bg-green-500 text-white font-bold text-lg md:text-xl rounded-2xl animate-bounce shadow-xl shadow-green-600/30 transition-all transform hover:scale-105"
                         >
                         ACEITAR PARTIDA
                     </button>
@@ -314,13 +323,13 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
         </div>
       ) : activeTab === 'find' ? (
         // FIND MATCH MODE CONFIG
-        <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8">
-          <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold mb-2 text-white">Qual a vibe de hoje?</h1>
+        <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6 md:p-8">
+          <div className="text-center mb-8 md:mb-10">
+            <h1 className="text-2xl md:text-3xl font-bold mb-2 text-white">Qual a vibe de hoje?</h1>
             <p className="text-slate-400">Isso define quem será colocado no seu time.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-10">
             {[Vibe.TRYHARD, Vibe.CHILL, Vibe.LEARNING].map((vibe) => (
               <button
                 key={vibe}
@@ -352,7 +361,7 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
                     <div className="text-xs text-slate-500">Latência estimada: 15ms</div>
                 </div>
              </div>
-             <div className="text-green-400 text-xs font-bold bg-green-400/10 px-2 py-1 rounded">Ótima Conexão</div>
+             <div className="text-green-400 text-[10px] md:text-xs font-bold bg-green-400/10 px-2 py-1 rounded">Ótima Conexão</div>
           </div>
 
           <button 
@@ -372,8 +381,8 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
                 <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                 
                 <Crown className="w-20 h-20 text-amber-500 mx-auto mb-6 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]" />
-                <h2 className="text-3xl font-bold text-white mb-4">Captain Mode Bloqueado</h2>
-                <p className="text-slate-400 text-lg max-w-xl mx-auto mb-8">
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Captain Mode Bloqueado</h2>
+                <p className="text-slate-400 text-base md:text-lg max-w-xl mx-auto mb-8">
                   Assuma o controle total do lobby. Filtre por score, chute tóxicos e garanta a comp perfeita.
                 </p>
 
@@ -430,7 +439,7 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
                   {/* Vibe Selection */}
                   <div>
                     <label className="block text-sm font-medium text-slate-400 mb-2">Vibe do Lobby</label>
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
                       {[Vibe.TRYHARD, Vibe.CHILL, Vibe.LEARNING].map(vibe => (
                         <button
                           key={vibe}

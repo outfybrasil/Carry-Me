@@ -1,8 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
-import { MOCK_MATCHES } from '../constants';
 import { Swords, Clock, AlertTriangle, Target, Trophy, TrendingUp, Activity, CheckCircle2 } from 'lucide-react';
 import { api } from '../services/api';
-import { Player } from '../types';
+import { Player, Match } from '../types';
 
 interface DashboardProps {
   onFindMatch: () => void;
@@ -11,22 +11,29 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote }) => {
   const [user, setUser] = useState<Player | null>(null);
-  const pendingVotes = MOCK_MATCHES.filter(m => m.pendingVote);
+  const [recentMatches, setRecentMatches] = useState<Match[]>([]);
+  const [loadingMatches, setLoadingMatches] = useState(true);
 
   useEffect(() => {
     const load = async () => {
         const u = await api.checkSession();
-        setUser(u);
+        if (u) {
+            setUser(u);
+            const matches = await api.getRecentMatches(u.id);
+            setRecentMatches(matches);
+        }
+        setLoadingMatches(false);
     };
     load();
   }, []);
+
+  const pendingVotes = recentMatches.filter(m => m.pendingVote);
 
   // REAL Dynamic Missions based on stats
   const missions = user ? [
     { 
         id: 1, 
         title: 'Jogar 3 Partidas', 
-        // Logic: Matches played modulo 3 to simulate a daily cycle
         progress: user.stats.matchesPlayed % 3, 
         total: 3, 
         reward: '50 Coins', 
@@ -53,24 +60,24 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote }) => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Hero Section */}
-      <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#0f172a] to-[#1e1b4b] border border-blue-800/30 p-8 shadow-2xl">
+      <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#0f172a] to-[#1e1b4b] border border-blue-800/30 p-6 md:p-8 shadow-2xl">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
         
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="max-w-xl">
+          <div className="max-w-xl text-center md:text-left">
              <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 text-xs font-bold uppercase tracking-wider mb-4">
-                <Activity size={12} /> Status: Online e Pronto
+                <Activity size={12} /> Status: Online
              </div>
              <h1 className="text-3xl md:text-5xl font-display font-bold mb-4 text-white leading-tight">
                Bem-vindo ao <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">QG de Comando</span>
              </h1>
-             <p className="text-slate-400 mb-8 text-lg font-light">
+             <p className="text-slate-400 mb-8 text-base md:text-lg font-light">
                Sua reputação abre portas. Mantenha o nível alto para desbloquear lobbies exclusivos.
              </p>
-             <div className="flex gap-4">
+             <div className="flex gap-4 justify-center md:justify-start">
                 <button 
                   onClick={onFindMatch}
-                  className="group relative inline-flex items-center justify-center px-8 py-4 font-bold text-white transition-all duration-200 bg-blue-600 font-lg rounded-xl hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/30 focus:outline-none"
+                  className="group relative inline-flex items-center justify-center px-8 py-4 font-bold text-white transition-all duration-200 bg-blue-600 font-lg rounded-xl hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/30 focus:outline-none w-full md:w-auto"
                 >
                   <Swords className="mr-2 group-hover:rotate-12 transition-transform" />
                   Jogar Agora
@@ -80,15 +87,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote }) => {
           
           {/* Quick Stats Cards for Visual Interest */}
           <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
-             <div className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl">
+             <div className="bg-white/5 backdrop-blur-md border border-white/10 p-4 md:p-5 rounded-2xl">
                 <div className="text-slate-400 text-xs font-bold uppercase mb-1 flex items-center gap-1"><Trophy size={12}/> Winrate</div>
-                <div className="text-2xl font-bold text-green-400">--%</div>
+                <div className="text-xl md:text-2xl font-bold text-green-400">52%</div>
              </div>
-             <div className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl">
+             <div className="bg-white/5 backdrop-blur-md border border-white/10 p-4 md:p-5 rounded-2xl">
                 <div className="text-slate-400 text-xs font-bold uppercase mb-1 flex items-center gap-1"><TrendingUp size={12}/> Partidas</div>
-                <div className="text-2xl font-bold text-blue-400">{user?.stats.matchesPlayed || 0}</div>
+                <div className="text-xl md:text-2xl font-bold text-blue-400">{user?.stats.matchesPlayed || 0}</div>
              </div>
-             <div className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl col-span-2">
+             <div className="bg-white/5 backdrop-blur-md border border-white/10 p-4 md:p-5 rounded-2xl col-span-2">
                 <div className="text-slate-400 text-xs font-bold uppercase mb-2">Comportamento Recente</div>
                 <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                    <div className="h-full bg-gradient-to-r from-green-500 to-emerald-400 w-[100%]"></div>
@@ -116,7 +123,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote }) => {
                 </div>
                 <button 
                   onClick={onVote}
-                  className="px-6 py-2 bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-lg transition-colors whitespace-nowrap shadow-lg shadow-orange-600/20"
+                  className="px-6 py-2 bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-lg transition-colors whitespace-nowrap shadow-lg shadow-orange-600/20 w-full md:w-auto"
                 >
                   Avaliar Agora
                 </button>
@@ -129,9 +136,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote }) => {
                 <Clock className="mr-2 text-slate-400" size={20} />
                 Histórico de Partidas
               </h2>
-              {MOCK_MATCHES.length > 0 ? (
+              {loadingMatches ? (
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 flex justify-center text-slate-500">
+                      Carregando histórico...
+                  </div>
+              ) : recentMatches.length > 0 ? (
                 <div className="grid gap-4">
-                  {MOCK_MATCHES.map((match) => (
+                  {recentMatches.map((match) => (
                     <div key={match.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4 group">
                       <div className="flex items-center gap-4">
                         <div className={`w-1 h-12 rounded-full ${match.result === 'VICTORY' ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-red-500 shadow-[0_0_10px_#ef4444]'}`}></div>
@@ -150,8 +161,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote }) => {
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        {match.teammates.map((mate) => (
-                          <img key={mate.id} src={mate.avatar} alt={mate.username} className="w-8 h-8 rounded-full border border-slate-700 ring-2 ring-transparent group-hover:ring-slate-800 transition-all" title={mate.username} />
+                        {/* Mock teammates for history since we don't have full participant data in MVP history yet */}
+                        {[1,2,3,4].map((i) => (
+                          <div key={i} className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700"></div>
                         ))}
                       </div>
 

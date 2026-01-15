@@ -110,7 +110,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
 
       {/* Sidebar */}
       <aside className={`
-        fixed md:relative top-0 left-0 h-full glass-panel border-r border-white/5 flex flex-col z-50 transform transition-all duration-300 ease-in-out md:translate-x-0
+        fixed md:relative top-0 left-0 h-full glass-panel border-r border-white/5 flex flex-col z-[60] transform transition-all duration-300 ease-in-out md:translate-x-0 bg-[#020202]/95 backdrop-blur-xl md:bg-transparent
         ${isMobileMenuOpen ? 'translate-x-0 w-72' : '-translate-x-full'}
         ${!isMobileMenuOpen && (isCollapsed ? 'md:w-20' : 'md:w-72')}
       `}>
@@ -239,7 +239,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black/80 z-40 md:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-black/80 z-50 md:hidden backdrop-blur-sm"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
@@ -320,7 +320,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
         
         {/* Mobile Notification Drawer (Simplified) */}
         {isNotifOpen && (
-           <div className="md:hidden fixed inset-0 z-50 bg-slate-950 p-6 overflow-y-auto animate-in slide-in-from-right">
+           <div className="md:hidden fixed inset-0 z-[70] bg-slate-950 p-6 overflow-y-auto animate-in slide-in-from-right">
                <div className="flex justify-between items-center mb-6">
                  <h2 className="text-xl font-bold">Notificações</h2>
                  <div className="flex gap-4">
@@ -342,7 +342,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto scroll-smooth">
-          <div className="p-4 md:p-10 max-w-7xl mx-auto pb-24 md:pb-10">
+          <div className="p-3 md:p-10 max-w-7xl mx-auto pb-24 md:pb-10">
             {children}
           </div>
         </main>

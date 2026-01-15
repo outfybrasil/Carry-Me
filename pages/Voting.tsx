@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { MOCK_MATCHES, POSITIVE_TAGS, NEGATIVE_TAGS } from '../constants';
 import { Tag, TagType, Match, Vibe } from '../types';
@@ -26,6 +27,8 @@ const FALLBACK_MATCH: Match = {
       equipped: {},
       tutorialCompleted: true,
       stats: { matchesPlayed: 10, mvps: 1, commendations: 5, sherpaSessions: 0, perfectBehaviorStreak: 2 },
+      matchHistory: [],
+      advancedStats: { headshotPct: 0, adr: 0, kast: 0, entrySuccess: 0, clutchSuccess: 0, radar: [] },
       claimedAchievements: []
     },
     { 
@@ -39,6 +42,8 @@ const FALLBACK_MATCH: Match = {
       equipped: {},
       tutorialCompleted: true,
       stats: { matchesPlayed: 20, mvps: 3, commendations: 10, sherpaSessions: 0, perfectBehaviorStreak: 5 },
+      matchHistory: [],
+      advancedStats: { headshotPct: 0, adr: 0, kast: 0, entrySuccess: 0, clutchSuccess: 0, radar: [] },
       claimedAchievements: []
     },
     { 
@@ -52,6 +57,8 @@ const FALLBACK_MATCH: Match = {
       equipped: {},
       tutorialCompleted: true,
       stats: { matchesPlayed: 50, mvps: 5, commendations: 30, sherpaSessions: 0, perfectBehaviorStreak: 10 },
+      matchHistory: [],
+      advancedStats: { headshotPct: 0, adr: 0, kast: 0, entrySuccess: 0, clutchSuccess: 0, radar: [] },
       claimedAchievements: []
     },
     { 
@@ -65,6 +72,8 @@ const FALLBACK_MATCH: Match = {
       equipped: {},
       tutorialCompleted: true,
       stats: { matchesPlayed: 5, mvps: 0, commendations: 2, sherpaSessions: 0, perfectBehaviorStreak: 0 },
+      matchHistory: [],
+      advancedStats: { headshotPct: 0, adr: 0, kast: 0, entrySuccess: 0, clutchSuccess: 0, radar: [] },
       claimedAchievements: []
     },
   ],

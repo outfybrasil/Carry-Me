@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Shield, Bell, Volume2, Trash2, Save, LogOut, Moon, Eye, Settings as SettingsIcon } from 'lucide-react';
+
+import React, { useState, useEffect } from 'react';
+import { Shield, Bell, Volume2, Trash2, Save, LogOut, Moon, Eye, Settings as SettingsIcon, Link, Gamepad2 } from 'lucide-react';
 import { Player } from '../types';
 import { api } from '../services/api';
 
@@ -15,9 +16,21 @@ const Settings: React.FC<SettingsProps> = ({ user, onLogout, onNavigate, volume,
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
   
-  // Mock Settings State
+  // Settings State
   const [notifications, setNotifications] = useState(true);
   const [privateMode, setPrivateMode] = useState(false);
+  
+  // Game IDs
+  const [riotId, setRiotId] = useState('');
+  const [steamId, setSteamId] = useState('');
+
+  // Load user data on mount
+  useEffect(() => {
+    if (user) {
+        setRiotId(user.riotId || '');
+        setSteamId(user.steamId || '');
+    }
+  }, [user]);
 
   const handleDeleteAccount = async () => {
     setUpdating(true);
@@ -30,17 +43,71 @@ const Settings: React.FC<SettingsProps> = ({ user, onLogout, onNavigate, volume,
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
       setUpdating(true);
-      setTimeout(() => {
+      try {
+          const success = await api.updateGameAccounts(user.id, riotId, steamId);
+          if (success) {
+              alert("Configurações e contas vinculadas salvas com sucesso!");
+          } else {
+              alert("Erro ao salvar dados.");
+          }
+      } catch (e) {
+          console.error(e);
+          alert("Ocorreu um erro ao conectar com o servidor.");
+      } finally {
           setUpdating(false);
-          alert("Configurações salvas localmente!");
-      }, 1000);
+      }
   }
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
       <h1 className="text-3xl font-bold text-white mb-6">Configurações</h1>
+
+      {/* Game Accounts Binding (CRITICAL FOR MONITORING) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <Gamepad2 size={24} className="text-blue-400" /> Contas de Jogo
+        </h2>
+        <p className="text-sm text-slate-400 mb-6">
+            Para validar suas partidas automaticamente, precisamos vincular suas contas oficiais.
+        </p>
+
+        <div className="space-y-4 relative z-10">
+            <div>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Riot ID (LoL/Valorant)</label>
+                <div className="flex gap-2">
+                    <input 
+                        type="text" 
+                        value={riotId}
+                        onChange={(e) => setRiotId(e.target.value)}
+                        className="flex-1 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none"
+                        placeholder="Nome#TAG"
+                    />
+                    <button className={`px-4 py-2 font-bold rounded-lg border flex items-center gap-2 ${riotId && user.riotId === riotId ? 'bg-green-500/10 text-green-400 border-green-500/50' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                        <Link size={16} /> {riotId && user.riotId === riotId ? 'Vinculado' : 'Não Salvo'}
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Steam ID (CS2/Dota)</label>
+                <div className="flex gap-2">
+                    <input 
+                        type="text" 
+                        value={steamId}
+                        onChange={(e) => setSteamId(e.target.value)}
+                        className="flex-1 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none"
+                        placeholder="Steam ID 64"
+                    />
+                    <button className={`px-4 py-2 font-bold rounded-lg border flex items-center gap-2 ${steamId && user.steamId === steamId ? 'bg-green-500/10 text-green-400 border-green-500/50' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                        <Link size={16} /> {steamId && user.steamId === steamId ? 'Vinculado' : 'Não Salvo'}
+                    </button>
+                </div>
+            </div>
+        </div>
+      </div>
 
       {/* Preferences */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">

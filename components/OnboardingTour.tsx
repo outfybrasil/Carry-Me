@@ -1,36 +1,60 @@
 
 import React from 'react';
-import { CheckCircle, ArrowRight, User, ShieldCheck, Coins, Camera } from 'lucide-react';
+import { CheckCircle, ArrowRight, User, ShieldCheck, Coins, Camera, ListTodo, ShoppingBag, Swords } from 'lucide-react';
 
 interface OnboardingTourProps {
   step: number;
   onNext: () => void;
   onNavigate: (page: string) => void;
   currentPage?: string;
+  tasks?: {
+    avatar: boolean;
+    shop: boolean;
+    match: boolean;
+  };
 }
 
-const OnboardingTour: React.FC<OnboardingTourProps> = ({ step, onNext, onNavigate, currentPage }) => {
+const OnboardingTour: React.FC<OnboardingTourProps> = ({ step, onNext, onNavigate, currentPage, tasks }) => {
   if (step === 0) return null;
 
-  // MINI MODE: If user is on step 2 AND already on profile page, allow interaction
-  if (step === 2 && currentPage === 'profile') {
+  // MINI MODE: If user is on step 2, always show checklist unless on a page that needs full attention
+  // Only show mini if we are actively doing tasks
+  if (step === 2) {
+      const remaining = [!tasks?.avatar, !tasks?.shop, !tasks?.match].filter(Boolean).length;
+      
       return (
         <div className="fixed bottom-6 right-6 z-[100] max-w-sm w-full bg-slate-900 border border-blue-500 rounded-xl p-5 shadow-[0_0_30px_rgba(59,130,246,0.3)] animate-in slide-in-from-right duration-500">
             <div className="flex items-start gap-4">
-                <div className="p-3 bg-blue-500/20 rounded-full animate-pulse">
-                    <Camera className="text-blue-400" size={24} />
+                <div className="p-3 bg-blue-500/20 rounded-full">
+                    <ListTodo className="text-blue-400" size={24} />
                 </div>
-                <div>
-                    <h3 className="font-bold text-white text-lg">Missão Ativa</h3>
-                    <p className="text-slate-400 text-sm mb-2">Clique na sua foto de perfil para alterá-la.</p>
-                    <div className="text-xs text-blue-400 font-bold uppercase tracking-wider">Aguardando Ação...</div>
+                <div className="flex-1">
+                    <h3 className="font-bold text-white text-lg flex justify-between">
+                       Missões Iniciais
+                       <span className="text-xs bg-blue-600 px-2 py-1 rounded text-white">{3 - remaining}/3</span>
+                    </h3>
+                    
+                    <div className="mt-3 space-y-2">
+                        <button onClick={() => onNavigate('profile')} className={`w-full flex items-center justify-between text-sm p-2 rounded ${tasks?.avatar ? 'text-green-400 bg-green-900/10 line-through decoration-green-500' : 'text-slate-300 hover:bg-slate-800'}`}>
+                           <span className="flex items-center gap-2"><Camera size={14}/> Mudar Avatar</span>
+                           {tasks?.avatar && <CheckCircle size={14} />}
+                        </button>
+                        <button onClick={() => onNavigate('shop')} className={`w-full flex items-center justify-between text-sm p-2 rounded ${tasks?.shop ? 'text-green-400 bg-green-900/10 line-through decoration-green-500' : 'text-slate-300 hover:bg-slate-800'}`}>
+                           <span className="flex items-center gap-2"><ShoppingBag size={14}/> Visitar Loja</span>
+                           {tasks?.shop && <CheckCircle size={14} />}
+                        </button>
+                        <button onClick={() => onNavigate('match')} className={`w-full flex items-center justify-between text-sm p-2 rounded ${tasks?.match ? 'text-green-400 bg-green-900/10 line-through decoration-green-500' : 'text-slate-300 hover:bg-slate-800'}`}>
+                           <span className="flex items-center gap-2"><Swords size={14}/> Ver Jogar Agora</span>
+                           {tasks?.match && <CheckCircle size={14} />}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
       );
   }
 
-  // DEFAULT FULLSCREEN MODE
+  // FULLSCREEN MODES FOR WELCOME AND REWARD
   return (
     <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
       <div className="max-w-lg w-full bg-slate-900 border border-brand-purple/50 rounded-2xl shadow-[0_0_50px_rgba(124,58,237,0.3)] overflow-hidden relative animate-in zoom-in-95 duration-300">
@@ -39,7 +63,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ step, onNext, onNavigat
         <div className="h-1 w-full bg-slate-800">
            <div 
              className="h-full bg-brand-purple transition-all duration-500" 
-             style={{ width: step === 1 ? '33%' : step === 2 ? '66%' : '100%' }}
+             style={{ width: step === 1 ? '10%' : step === 3 ? '100%' : '50%' }}
            ></div>
         </div>
 
@@ -58,36 +82,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ step, onNext, onNavigat
                  onClick={onNext}
                  className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
                >
-                 Começar <ArrowRight size={18} />
-               </button>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="animate-in fade-in slide-in-from-right-4">
-               <div className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <User size={40} className="text-blue-400" />
-               </div>
-               <h2 className="text-2xl font-bold text-white mb-2 font-display">Sua Primeira Missão</h2>
-               <p className="text-slate-400 text-sm mb-6">
-                 Complete seu perfil para ganhar credibilidade.
-               </p>
-               
-               <div className="bg-slate-950 p-6 rounded-xl border border-slate-800 mb-8 text-left flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full border-2 border-dashed border-slate-600 flex items-center justify-center text-slate-500">
-                     1
-                  </div>
-                  <div>
-                     <h3 className="font-bold text-white">Personalize seu Avatar</h3>
-                     <p className="text-xs text-slate-400">Vá ao perfil e mude sua foto.</p>
-                  </div>
-               </div>
-
-               <button 
-                 onClick={() => onNavigate('profile')}
-                 className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
-               >
-                 Ir para Perfil
+                 Começar Missões <ArrowRight size={18} />
                </button>
             </div>
           )}

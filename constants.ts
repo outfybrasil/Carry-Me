@@ -21,6 +21,15 @@ export const CURRENT_USER: Player = {
     sherpaSessions: 0,
     perfectBehaviorStreak: 0
   },
+  matchHistory: [],
+  advancedStats: {
+    headshotPct: 0,
+    adr: 0,
+    kast: 0,
+    entrySuccess: 0,
+    clutchSuccess: 0,
+    radar: []
+  },
   claimedAchievements: []
 };
 
