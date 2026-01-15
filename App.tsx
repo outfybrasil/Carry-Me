@@ -194,17 +194,17 @@ const App: React.FC = () => {
     }
   }, [onboardingTasks, onboardingStep]);
 
-  // AUTH INITIALIZATION
+  // AUTH INITIALIZATION & LISTENER
   useEffect(() => {
     let mounted = true;
+    let currentUserRef = user; // Local ref to track user state inside closure
 
-    // Safety Timeout - Force finish loading if something gets stuck (like DB 400 error)
+    // Safety Timeout - Force finish loading if something gets stuck
     const safetyTimeout = setTimeout(() => {
         if (mounted && loading) {
-            console.warn("Initialization timed out. Forcing UI load to prevent stuck screen.");
             setLoading(false);
         }
-    }, 8000);
+    }, 5000);
 
     const checkHash = () => {
         const hash = window.location.hash;
@@ -224,7 +224,6 @@ const App: React.FC = () => {
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error("Session Error:", error);
           if (mounted) setLoading(false);
           return;
         }
@@ -234,10 +233,9 @@ const App: React.FC = () => {
           if (mounted) {
             if (profile) {
               setUser(profile);
+              currentUserRef = profile; // Update local ref
               if (!profile.tutorialCompleted) setOnboardingStep(1);
             } else {
-              // If profile is null but session exists, it usually means database error (table missing)
-              console.error("Session valid but profile sync failed.");
               setProfileError(true);
             }
           }
@@ -249,26 +247,41 @@ const App: React.FC = () => {
       }
     };
 
+    // Run initial check
     initialize();
 
+    // Listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-         try {
-             const profile = await api.syncUserProfile(session.user);
-             if (profile) {
-                 setUser(profile);
-                 if (!profile.tutorialCompleted) setOnboardingStep(1);
-             } else {
-                 setProfileError(true);
+      if (!mounted) return;
+
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+         if (session?.user) {
+             // CRITICAL FIX: If we already have the user loaded, DO NOT re-sync.
+             // This prevents the "disappearing" bug when Supabase refreshes token 3s after load.
+             if (currentUserRef && currentUserRef.id === session.user.id) {
+                 return;
              }
-         } catch(e) {
-             console.error("Auth listener sync error:", e);
-             setProfileError(true);
-         } finally {
-             setLoading(false);
+
+             setLoading(true);
+             try {
+                 const profile = await api.syncUserProfile(session.user);
+                 if (profile) {
+                     setUser(profile);
+                     currentUserRef = profile;
+                     if (!profile.tutorialCompleted) setOnboardingStep(1);
+                 } else {
+                     // Only error if we really can't get the profile after a valid sign in
+                     console.warn("Could not sync profile on state change");
+                 }
+             } catch(e) {
+                 console.error("Auth listener sync error:", e);
+             } finally {
+                 setLoading(false);
+             }
          }
       } else if (event === 'SIGNED_OUT') {
          setUser(null);
+         currentUserRef = null;
          setLoading(false);
          setCurrentPage('dashboard');
       } else if (event === 'PASSWORD_RECOVERY') {
@@ -282,7 +295,7 @@ const App: React.FC = () => {
       clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
-  }, []);
+  }, []); // Empty dependency array to run once
 
   // --- REALTIME CHAT LISTENER ---
   useEffect(() => {
@@ -314,7 +327,7 @@ const App: React.FC = () => {
     return () => {
         supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user]); // Re-subscribe only if user changes (login/logout)
 
   const handleLoginSuccess = (loggedInUser: Player) => {
     setUser(loggedInUser);

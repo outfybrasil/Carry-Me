@@ -154,25 +154,27 @@ export const api = {
     try {
         const userId = user.id;
         
-        // 1. Try fetching profile
+        // 1. Try fetching profile first
         let { data: profile, error: fetchError } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
 
-        // 2. If network error or unknown, retry once or fail gracefully
+        // 2. If network error but not "No rows found", handle gracefully
         if (fetchError && fetchError.code !== 'PGRST116') {
             console.error("Fetch profile error:", fetchError);
-            return null; // Stop infinite loading
+            return null;
         }
 
-        // 3. Create profile if it doesn't exist
+        // 3. Create OR Update profile (UPSERT) to prevent race conditions
         if (!profile) {
           const meta = user.user_metadata || {};
           let username = meta.custom_claims?.global_name || meta.full_name || meta.username || user.email?.split('@')[0] || 'Gamer';
           const avatar = meta.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
           const email = user.email;
 
+          // CRITICAL FIX: Changed from .insert() to .upsert()
+          // This prevents "duplicate key" errors if two requests hit at once
           const { data: newProfile, error: createError } = await supabase
               .from('profiles')
-              .insert([{ 
+              .upsert({ 
                   id: userId, 
                   username, 
                   email, 
@@ -180,14 +182,18 @@ export const api = {
                   score: 50, 
                   coins: 0, 
                   tutorial_completed: false 
-              }])
+              }, { onConflict: 'id' }) 
               .select().single();
           
           if (createError) {
-              console.error("Error creating profile (likely DB Policy issue):", createError);
-              return null;
+              console.error("Error creating/upserting profile:", createError);
+              // Fallback: fetch again, maybe another thread created it
+              const { data: retryProfile } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+              if (retryProfile) profile = retryProfile;
+              else return null;
+          } else {
+              profile = newProfile;
           }
-          profile = newProfile;
         } 
         
         if (!profile) return null;
