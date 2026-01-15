@@ -20,7 +20,7 @@ import LandingPage from './pages/LandingPage';
 import OnboardingTour from './components/OnboardingTour';
 import { Player, StoreItem, LobbyConfig, Vibe } from './types';
 import { api } from './services/api';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LogOut, AlertTriangle, RefreshCw } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 declare global {
@@ -64,6 +64,7 @@ const App: React.FC = () => {
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [paymentType, setPaymentType] = useState<'PREMIUM' | 'COINS' | null>(null);
   const [recoveryMode, setRecoveryMode] = useState(false);
+  const [profileError, setProfileError] = useState(false); // New Error State
   
   // Onboarding State
   const [onboardingStep, setOnboardingStep] = useState(0);
@@ -156,7 +157,7 @@ const App: React.FC = () => {
   useEffect(() => {
     let mounted = true;
 
-    // Safety Timeout: Force loading false after 6 seconds to prevent infinite loops
+    // Safety Timeout
     const safetyTimeout = setTimeout(() => {
         if (mounted && loading) {
             console.warn("Initialization timed out. Forcing UI load.");
@@ -194,11 +195,9 @@ const App: React.FC = () => {
               setUser(profile);
               if (!profile.tutorialCompleted) setOnboardingStep(1);
             } else {
-              // CRITICAL FIX: If we have a session but NO profile (sync failed),
-              // clear the session to prevent infinite loading loops on refresh.
-              console.error("Session valid but profile sync failed. Clearing session.");
-              await supabase.auth.signOut();
-              setUser(null);
+              // FIX: Instead of signing out immediately (loop), show error UI
+              console.error("Session valid but profile sync failed.");
+              setProfileError(true);
             }
           }
         }
@@ -213,14 +212,19 @@ const App: React.FC = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-         // Only fetch if we don't have user data yet (e.g. login form success)
-         // or if we want to ensure freshness.
-         // We do NOT set loading=true here to avoid flickering if init is already done.
-         const profile = await api.syncUserProfile(session.user);
-         if (profile) {
-             setUser(profile);
-             if (!profile.tutorialCompleted) setOnboardingStep(1);
-             setLoading(false); // Ensure loading is off if this was a login action
+         try {
+             const profile = await api.syncUserProfile(session.user);
+             if (profile) {
+                 setUser(profile);
+                 if (!profile.tutorialCompleted) setOnboardingStep(1);
+             } else {
+                 setProfileError(true);
+             }
+         } catch(e) {
+             console.error("Auth listener sync error:", e);
+             setProfileError(true);
+         } finally {
+             setLoading(false);
          }
       } else if (event === 'SIGNED_OUT') {
          setUser(null);
@@ -243,6 +247,7 @@ const App: React.FC = () => {
     setUser(loggedInUser);
     setShowAuth(false);
     setRecoveryMode(false);
+    setProfileError(false);
     if (!loggedInUser.tutorialCompleted) setOnboardingStep(1);
     window.history.replaceState(null, '', window.location.pathname);
   };
@@ -250,6 +255,13 @@ const App: React.FC = () => {
   const handleLogout = async () => {
     setLoading(true);
     await supabase.auth.signOut();
+    setProfileError(false); // Reset error on explicit logout
+  };
+  
+  // Emergency Logout for stuck loading screens
+  const forceLogout = async () => {
+      await supabase.auth.signOut();
+      window.location.reload();
   };
 
   const refreshUser = async () => {
@@ -354,6 +366,36 @@ const App: React.FC = () => {
         <span className="text-slate-500 font-display font-bold animate-pulse uppercase tracking-[0.3em] text-xs">Carregando...</span>
       </div>
     );
+  }
+
+  // --- ERROR STATE UI (Stops infinite loop) ---
+  if (profileError) {
+      return (
+         <div className="min-h-screen bg-brand-dark flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6 border border-red-500/20">
+               <AlertTriangle className="text-red-500" size={40} />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">Erro de Sincronização</h1>
+            <p className="text-slate-400 mb-8 max-w-md">
+               Não foi possível carregar seu perfil. Isso geralmente acontece quando o banco de dados não tem as permissões corretas (RLS).
+            </p>
+            <div className="flex gap-4">
+               <button 
+                 onClick={() => window.location.reload()}
+                 className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl flex items-center gap-2"
+               >
+                 <RefreshCw size={18} /> Tentar Novamente
+               </button>
+               <button 
+                 onClick={forceLogout}
+                 className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl flex items-center gap-2 border border-slate-700"
+               >
+                 <LogOut size={18} /> Sair
+               </button>
+            </div>
+            <p className="mt-8 text-xs text-slate-600">Dica: Rode o script SQL de correção no Supabase.</p>
+         </div>
+      );
   }
 
   if (recoveryMode) {

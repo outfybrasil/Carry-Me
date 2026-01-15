@@ -184,7 +184,7 @@ export const api = {
               .select().single();
           
           if (createError) {
-              console.error("Error creating profile:", createError);
+              console.error("Error creating profile (likely DB Policy issue):", createError);
               return null;
           }
           profile = newProfile;
