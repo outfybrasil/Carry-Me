@@ -67,7 +67,6 @@ const App: React.FC = () => {
   
   // Onboarding State
   const [onboardingStep, setOnboardingStep] = useState(0);
-  // Track specific sub-tasks for step 2
   const [onboardingTasks, setOnboardingTasks] = useState({
     avatar: false,
     shop: false,
@@ -88,7 +87,6 @@ const App: React.FC = () => {
   const [volume, setVolume] = useState(50);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Initialize Audio Context on user interaction to comply with browser policies
   const initAudio = () => {
     if (!audioContextRef.current) {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -101,34 +99,24 @@ const App: React.FC = () => {
 
   const playUiSound = () => {
     if (volume === 0 || !audioContextRef.current) return;
-    
     const ctx = audioContextRef.current;
     const osc = ctx.createOscillator();
     const gainNode = ctx.createGain();
-
     osc.connect(gainNode);
     gainNode.connect(ctx.destination);
-
-    // "Futuristic Click" sound parameters
     osc.type = 'sine';
     const now = ctx.currentTime;
-    
     osc.frequency.setValueAtTime(800, now);
     osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
-    
-    // Volume control
-    const normalizedVolume = (volume / 100) * 0.1; // Max 0.1 gain to not blast ears
+    const normalizedVolume = (volume / 100) * 0.1;
     gainNode.gain.setValueAtTime(normalizedVolume, now);
     gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-
     osc.start(now);
     osc.stop(now + 0.1);
   };
 
-  // Global Click Listener for Sound
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      // Only play sound if clicking on interactive elements
       const target = e.target as HTMLElement;
       if (
         target.tagName === 'BUTTON' || 
@@ -141,14 +129,11 @@ const App: React.FC = () => {
         playUiSound();
       }
     };
-
     window.addEventListener('click', handleClick);
     return () => window.removeEventListener('click', handleClick);
   }, [volume]);
 
-  // ONBOARDING TASK TRACKER
   useEffect(() => {
-    // Check navigation based tasks
     if (onboardingStep === 2) {
       if (currentPage === 'shop' && !onboardingTasks.shop) {
         setOnboardingTasks(prev => ({ ...prev, shop: true }));
@@ -159,57 +144,66 @@ const App: React.FC = () => {
     }
   }, [currentPage, onboardingStep]);
 
-  // COMPLETE ONBOARDING STEP 2
   useEffect(() => {
     if (onboardingStep === 2) {
       if (onboardingTasks.avatar && onboardingTasks.shop && onboardingTasks.match) {
-        setOnboardingStep(3); // All tasks done, move to reward
+        setOnboardingStep(3); 
       }
     }
   }, [onboardingTasks, onboardingStep]);
 
-  // AUTHENTICATION & INITIALIZATION LOGIC
+  // AUTH INITIALIZATION
   useEffect(() => {
     let mounted = true;
 
-    // 1. Manual Check for Recovery URL
-    const hash = window.location.hash;
-    const query = window.location.search;
-    
-    if ((hash && hash.includes('type=recovery')) || (query && query.includes('type=recovery'))) {
-      setRecoveryMode(true);
-      setLoading(false);
-      return; // Stop further processing if recovering
-    }
+    // Safety Timeout: Force loading false after 6 seconds to prevent infinite loops
+    const safetyTimeout = setTimeout(() => {
+        if (mounted && loading) {
+            console.warn("Initialization timed out. Forcing UI load.");
+            setLoading(false);
+        }
+    }, 6000);
 
-    // 2. Deterministic Initialization
+    const checkHash = () => {
+        const hash = window.location.hash;
+        const query = window.location.search;
+        if ((hash && hash.includes('type=recovery')) || (query && query.includes('type=recovery'))) {
+            setRecoveryMode(true);
+            setLoading(false);
+            return true;
+        }
+        return false;
+    };
+
     const initialize = async () => {
+      if (checkHash()) return;
+
       try {
-        // Attempt to get the session from local storage/API
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error("Error getting session:", error);
+          console.error("Session Error:", error);
           if (mounted) setLoading(false);
           return;
         }
 
         if (session?.user) {
-          // If we have a user, fetch their detailed profile
           const profile = await api.syncUserProfile(session.user);
           if (mounted) {
             if (profile) {
               setUser(profile);
               if (!profile.tutorialCompleted) setOnboardingStep(1);
-            }
-            // Clear URL fragment if it contained access token to prevent re-parsing issues
-            if (window.location.hash && window.location.hash.includes('access_token')) {
-               window.history.replaceState(null, '', window.location.pathname);
+            } else {
+              // CRITICAL FIX: If we have a session but NO profile (sync failed),
+              // clear the session to prevent infinite loading loops on refresh.
+              console.error("Session valid but profile sync failed. Clearing session.");
+              await supabase.auth.signOut();
+              setUser(null);
             }
           }
         }
       } catch (e) {
-        console.error("Initialization failed:", e);
+        console.error("Init failed:", e);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -217,18 +211,17 @@ const App: React.FC = () => {
 
     initialize();
 
-    // 3. Listen for Auth Changes (Sign In, Sign Out, Auto-Refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Only react to specific events after initial load to avoid double-fetching
-      if (event === 'SIGNED_IN' && session?.user && !user) {
-         // User just signed in (or was found by the listener before getSession finished)
-         setLoading(true);
+      if (event === 'SIGNED_IN' && session?.user) {
+         // Only fetch if we don't have user data yet (e.g. login form success)
+         // or if we want to ensure freshness.
+         // We do NOT set loading=true here to avoid flickering if init is already done.
          const profile = await api.syncUserProfile(session.user);
          if (profile) {
-            setUser(profile);
-            if (!profile.tutorialCompleted) setOnboardingStep(1);
+             setUser(profile);
+             if (!profile.tutorialCompleted) setOnboardingStep(1);
+             setLoading(false); // Ensure loading is off if this was a login action
          }
-         setLoading(false);
       } else if (event === 'SIGNED_OUT') {
          setUser(null);
          setLoading(false);
@@ -241,9 +234,10 @@ const App: React.FC = () => {
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
-  }, []); // Empty dependency array: runs once on mount
+  }, []);
 
   const handleLoginSuccess = (loggedInUser: Player) => {
     setUser(loggedInUser);
@@ -256,17 +250,12 @@ const App: React.FC = () => {
   const handleLogout = async () => {
     setLoading(true);
     await supabase.auth.signOut();
-    // State update handled by onAuthStateChange('SIGNED_OUT')
   };
 
   const refreshUser = async () => {
     if (!user) return;
-    try {
-        const updated = await api.checkSession();
-        if (updated) setUser(updated);
-    } catch (e) {
-        console.error("Failed to refresh user", e);
-    }
+    const updated = await api.checkSession();
+    if (updated) setUser(updated);
   };
 
   const handleVoteComplete = () => {
@@ -295,16 +284,6 @@ const App: React.FC = () => {
     setIsLobbyHost(asHost);
     if (config) {
         setCurrentLobbyConfig(config);
-    } else {
-        // Reset to default if not host (joining random match)
-        setCurrentLobbyConfig({
-            title: 'Sala Pública #8291',
-            game: 'League of Legends',
-            vibe: Vibe.TRYHARD,
-            minScore: 0,
-            micRequired: true,
-            maxPlayers: 5
-        });
     }
     setCurrentPage('lobby-room');
   };
@@ -345,16 +324,15 @@ const App: React.FC = () => {
     }
   };
 
-  // ONBOARDING HANDLERS
   const handleOnboardingNext = async () => {
     if (onboardingStep === 1) {
-        setOnboardingStep(2); // Start Missions
+        setOnboardingStep(2); 
     } else if (onboardingStep === 3) {
         if(user) {
             await api.completeTutorial(user.id);
             await refreshUser();
         }
-        setOnboardingStep(0); // Finish
+        setOnboardingStep(0); 
     }
   };
 
@@ -362,11 +340,10 @@ const App: React.FC = () => {
       setCurrentPage(page);
   };
 
-  // Called by Profile page when avatar changes
   const handleProfileUpdated = () => {
       if (onboardingStep === 2) {
           setOnboardingTasks(prev => ({...prev, avatar: true}));
-          refreshUser(); // Update UI immediately without reload
+          refreshUser();
       }
   };
 
@@ -374,12 +351,11 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-brand-dark flex flex-col items-center justify-center">
         <Loader2 className="w-12 h-12 text-brand-purple animate-spin mb-4" />
-        <span className="text-slate-500 font-display font-bold animate-pulse uppercase tracking-[0.3em] text-xs">Sincronizando</span>
+        <span className="text-slate-500 font-display font-bold animate-pulse uppercase tracking-[0.3em] text-xs">Carregando...</span>
       </div>
     );
   }
 
-  // FORCE RECOVERY VIEW if recovery mode is active
   if (recoveryMode) {
       return (
          <>
@@ -389,7 +365,6 @@ const App: React.FC = () => {
       )
   }
 
-  // Allow public access to legal pages even without user
   if (!user) {
     if (currentPage === 'terms') {
       return <div className="min-h-screen bg-[#020202]"><TermsOfService onBack={() => setCurrentPage('dashboard')} /></div>;
@@ -417,7 +392,6 @@ const App: React.FC = () => {
   const renderContent = () => {
     if (showVotingOverride) return <Voting onComplete={handleVoteComplete} />;
     
-    // Routing Logic
     switch (currentPage) {
       case 'dashboard': return <Dashboard onFindMatch={() => setCurrentPage('match')} onVote={() => setShowVotingOverride(true)} />;
       case 'profile': return <Profile user={user} onEquip={handleEquipItem} onProfileUpdate={handleProfileUpdated} />;

@@ -193,9 +193,15 @@ export const api = {
         if (!profile) return null;
 
         // 4. Fetch inventory (safely)
-        const { data: inventory } = await supabase.from('inventory').select('item_id').eq('user_id', userId);
+        let inventory = [];
+        try {
+            const { data: invData } = await supabase.from('inventory').select('item_id').eq('user_id', userId);
+            inventory = invData || [];
+        } catch(e) {
+            console.warn("Failed to fetch inventory", e);
+        }
         
-        return transformProfile(profile, inventory || []);
+        return transformProfile(profile, inventory);
     } catch (e) {
         console.error("Sync profile unexpected error:", e);
         return null;
