@@ -29,7 +29,7 @@ declare global {
   }
 }
 
-// --- TOAST COMPONENT ---
+// --- GLOBAL TOAST NOTIFICATION COMPONENT ---
 const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'chat' | 'error', onClose: () => void }) => {
     useEffect(() => {
         const timer = setTimeout(onClose, 4000);
@@ -37,8 +37,8 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
     }, [onClose]);
 
     return (
-        <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-right duration-300">
-            <div className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md ${
+        <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-right duration-300 pointer-events-none">
+            <div className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md pointer-events-auto ${
                 type === 'chat' ? 'bg-blue-600/90 border-blue-400 text-white' :
                 type === 'success' ? 'bg-green-600/90 border-green-400 text-white' :
                 'bg-red-600/90 border-red-400 text-white'
@@ -198,13 +198,13 @@ const App: React.FC = () => {
   useEffect(() => {
     let mounted = true;
 
-    // Safety Timeout - Increased to 10s to prevent false positives on slow connections
+    // Safety Timeout - Force finish loading if something gets stuck (like DB 400 error)
     const safetyTimeout = setTimeout(() => {
         if (mounted && loading) {
-            console.warn("Initialization timed out. Forcing UI load.");
+            console.warn("Initialization timed out. Forcing UI load to prevent stuck screen.");
             setLoading(false);
         }
-    }, 10000);
+    }, 8000);
 
     const checkHash = () => {
         const hash = window.location.hash;
@@ -236,6 +236,7 @@ const App: React.FC = () => {
               setUser(profile);
               if (!profile.tutorialCompleted) setOnboardingStep(1);
             } else {
+              // If profile is null but session exists, it usually means database error (table missing)
               console.error("Session valid but profile sync failed.");
               setProfileError(true);
             }
@@ -287,6 +288,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
+    // Create a listener for new messages where receiver_id is the current user
     const channel = supabase.channel('global_notifications')
         .on(
             'postgres_changes',
@@ -297,9 +299,10 @@ const App: React.FC = () => {
                 filter: `receiver_id=eq.${user.id}`
             }, 
             (payload) => {
-                // If the user is currently looking at the friends page, we might want to let the component handle it,
-                // but showing a toast is always good feedback.
+                // Play notification sound
                 playUiSound('notification');
+                
+                // Show visual toast
                 setToast({
                     msg: "Você recebeu uma nova mensagem!",
                     type: 'chat'
@@ -446,7 +449,7 @@ const App: React.FC = () => {
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">Erro de Sincronização</h1>
             <p className="text-slate-400 mb-8 max-w-md">
-               Não foi possível carregar seu perfil. Isso geralmente acontece quando o banco de dados não tem as permissões corretas (RLS).
+               Não foi possível carregar seu perfil. Isso geralmente acontece quando o banco de dados não tem as tabelas corretas (erro 400).
             </p>
             <div className="flex gap-4">
                <button 
@@ -462,7 +465,7 @@ const App: React.FC = () => {
                  <LogOut size={18} /> Sair
                </button>
             </div>
-            <p className="mt-8 text-xs text-slate-600">Dica: Rode o script SQL de correção no Supabase.</p>
+            <p className="mt-8 text-xs text-slate-600">Dica: Rode o script SQL 'CREATE TABLE' no Supabase.</p>
          </div>
       );
   }
@@ -540,7 +543,7 @@ const App: React.FC = () => {
     <>
       <CookieConsent />
       
-      {/* GLOBAL TOAST NOTIFICATION */}
+      {/* RENDER GLOBAL TOAST */}
       {toast && (
           <Toast 
               message={toast.msg} 
