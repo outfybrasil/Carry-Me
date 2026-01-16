@@ -1,14 +1,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, UserPlus, Users, MessageSquare, Gamepad2, Check, X, Bell, Send, ArrowLeft } from 'lucide-react';
+import { Search, UserPlus, Users, MessageSquare, Gamepad2, Check, X, Bell, Send, ArrowLeft, UserMinus, Ban } from 'lucide-react';
 import { Player, Friend, FriendRequest, ChatMessage } from '../types';
 import { api } from '../services/api';
 
 interface FriendsProps {
   user: Player;
+  onViewProfile: (username: string) => void;
 }
 
-const Friends: React.FC<FriendsProps> = ({ user }) => {
+const Friends: React.FC<FriendsProps> = ({ user, onViewProfile }) => {
   const [activeTab, setActiveTab] = useState<'list' | 'add' | 'requests'>('list');
   const [friends, setFriends] = useState<Friend[]>([]);
   const [requests, setRequests] = useState<FriendRequest[]>([]);
@@ -84,6 +85,30 @@ const Friends: React.FC<FriendsProps> = ({ user }) => {
     refreshData();
   };
 
+  const handleRemoveFriend = async (friend: Friend) => {
+      if (window.confirm(`Tem certeza que deseja remover ${friend.username} dos amigos?`)) {
+          const success = await api.removeFriend(user.id, friend.id);
+          if (success) {
+              refreshData();
+              if (activeChatFriend?.id === friend.id) setActiveChatFriend(null);
+          } else {
+              alert("Erro ao remover amigo.");
+          }
+      }
+  };
+
+  const handleBlockUser = async (friend: Friend) => {
+      if (window.confirm(`Deseja bloquear ${friend.username}? Vocês deixarão de ser amigos e ele não poderá te enviar mensagens.`)) {
+          const success = await api.blockUser(user.id, friend.id);
+          if (success) {
+              refreshData();
+              if (activeChatFriend?.id === friend.id) setActiveChatFriend(null);
+          } else {
+              alert("Erro ao bloquear usuário.");
+          }
+      }
+  };
+
   // --- ACTIONS: CHAT & INVITE ---
 
   const handleOpenChat = (friend: Friend) => {
@@ -129,7 +154,7 @@ const Friends: React.FC<FriendsProps> = ({ user }) => {
                       </button>
                       <img src={activeChatFriend.avatar} className="w-10 h-10 rounded-full border border-slate-700" />
                       <div>
-                          <h2 className="font-bold text-white text-lg">{activeChatFriend.username}</h2>
+                          <h2 onClick={() => onViewProfile(activeChatFriend.username)} className="font-bold text-white text-lg cursor-pointer hover:underline">{activeChatFriend.username}</h2>
                           <div className="flex items-center gap-1.5">
                               <span className={`w-2 h-2 rounded-full ${activeChatFriend.status === 'online' ? 'bg-green-500' : 'bg-slate-500'}`}></span>
                               <span className="text-xs text-slate-400">{activeChatFriend.status === 'online' ? 'Online' : 'Offline'}</span>
@@ -236,7 +261,7 @@ const Friends: React.FC<FriendsProps> = ({ user }) => {
                             <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-slate-900 ${friend.status === 'online' ? 'bg-green-500' : friend.status === 'ingame' ? 'bg-blue-500' : 'bg-slate-500'}`}></div>
                         </div>
                         <div className="flex-1">
-                            <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors">{friend.username}</h3>
+                            <h3 onClick={() => onViewProfile(friend.username)} className="font-bold text-white group-hover:text-blue-400 transition-colors cursor-pointer hover:underline">{friend.username}</h3>
                             <div className="text-xs text-slate-500 font-medium flex items-center gap-2">
                                 <span className={`px-1.5 py-0.5 rounded border ${friend.score >= 80 ? 'border-green-500/30 text-green-400 bg-green-500/10' : 'border-slate-700 text-slate-500'}`}>Score: {friend.score}</span>
                             </div>
@@ -255,6 +280,20 @@ const Friends: React.FC<FriendsProps> = ({ user }) => {
                                 title="Convidar para Jogo"
                             >
                                 <Gamepad2 size={16}/>
+                            </button>
+                            <button 
+                                onClick={() => handleRemoveFriend(friend)}
+                                className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg transition-colors" 
+                                title="Remover Amigo"
+                            >
+                                <UserMinus size={16}/>
+                            </button>
+                            <button 
+                                onClick={() => handleBlockUser(friend)}
+                                className="p-2 bg-slate-800 hover:bg-red-900/30 text-slate-500 hover:text-red-400 rounded-lg transition-colors" 
+                                title="Bloquear Usuário"
+                            >
+                                <Ban size={16}/>
                             </button>
                         </div>
                     </div>
@@ -294,7 +333,7 @@ const Friends: React.FC<FriendsProps> = ({ user }) => {
                                 <div className="flex items-center gap-3">
                                     <img src={result.avatar} className="w-10 h-10 rounded-full" />
                                     <div>
-                                        <h3 className="font-bold text-white">{result.username}</h3>
+                                        <h3 onClick={() => onViewProfile(result.username)} className="font-bold text-white cursor-pointer hover:underline">{result.username}</h3>
                                         <span className={`text-xs px-2 py-0.5 rounded border ${result.score >= 80 ? 'border-green-500/30 text-green-400 bg-green-500/10' : 'border-slate-700 text-slate-500'}`}>Score: {result.score}</span>
                                     </div>
                                 </div>
@@ -326,7 +365,7 @@ const Friends: React.FC<FriendsProps> = ({ user }) => {
                         <div className="flex items-center gap-4">
                             <img src={req.fromUser.avatar} className="w-12 h-12 rounded-full border-2 border-slate-700" />
                             <div>
-                                <h3 className="font-bold text-white text-lg">{req.fromUser.username}</h3>
+                                <h3 onClick={() => onViewProfile(req.fromUser.username)} className="font-bold text-white text-lg cursor-pointer hover:underline">{req.fromUser.username}</h3>
                                 <p className="text-xs text-slate-400">Quer ser seu amigo • {req.timestamp}</p>
                             </div>
                         </div>

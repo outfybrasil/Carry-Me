@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Swords, Clock, AlertTriangle, Target, Trophy, TrendingUp, Activity, CheckCircle2 } from 'lucide-react';
 import { api } from '../services/api';
 import { Player, Match } from '../types';
@@ -8,6 +8,23 @@ interface DashboardProps {
   onFindMatch: () => void;
   onVote: () => void;
 }
+
+// MISSION POOL (Backup grande para rotação diária)
+const MISSION_POOL = [
+    { id: 'm1', title: 'Aquecimento', desc: 'Jogue 1 partida hoje', target: 1, type: 'play', reward: '50 Coins' },
+    { id: 'm2', title: 'Maratona', desc: 'Jogue 3 partidas hoje', target: 3, type: 'play', reward: '100 Coins' },
+    { id: 'm3', title: 'Viciado', desc: 'Jogue 5 partidas hoje', target: 5, type: 'play', reward: 'Rare Box' },
+    { id: 'm4', title: 'Vitorioso', desc: 'Vença 1 partida hoje', target: 1, type: 'win', reward: '50 Coins' },
+    { id: 'm5', title: 'Dominante', desc: 'Vença 3 partidas hoje', target: 3, type: 'win', reward: '150 Coins' },
+    { id: 'm6', title: 'Tryhard', desc: 'Jogue 1 partida Tryhard', target: 1, type: 'play_tryhard', reward: '50 Coins' },
+    { id: 'm7', title: 'Chill Vibes', desc: 'Jogue 1 partida Chill', target: 1, type: 'play_chill', reward: '50 Coins' },
+    { id: 'm8', title: 'Veterano', desc: 'Jogue 2 partidas hoje', target: 2, type: 'play', reward: '75 Coins' },
+    { id: 'm9', title: 'Imparável', desc: 'Vença 2 partidas hoje', target: 2, type: 'win', reward: '100 Coins' },
+    { id: 'm10', title: 'Fim de Semana', desc: 'Jogue 4 partidas', target: 4, type: 'play', reward: '120 Coins' },
+    { id: 'm11', title: 'Competitivo', desc: 'Jogue 2 partidas Tryhard', target: 2, type: 'play_tryhard', reward: '100 Coins' },
+    { id: 'm12', title: 'Aprendiz', desc: 'Jogue 1 partida Learning', target: 1, type: 'play_learning', reward: '50 Coins' },
+    { id: 'm13', title: 'Persistente', desc: 'Jogue 3 partidas Chill', target: 3, type: 'play_chill', reward: '100 Coins' },
+];
 
 const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote }) => {
   const [user, setUser] = useState<Player | null>(null);
@@ -29,33 +46,35 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote }) => {
 
   const pendingVotes = recentMatches.filter(m => m.pendingVote);
 
-  // REAL Dynamic Missions based on stats
-  const missions = user ? [
-    { 
-        id: 1, 
-        title: 'Jogar 3 Partidas', 
-        progress: user.stats.matchesPlayed % 3, 
-        total: 3, 
-        reward: '50 Coins', 
-        completed: (user.stats.matchesPlayed > 0 && user.stats.matchesPlayed % 3 === 0)
-    },
-    { 
-        id: 2, 
-        title: 'Receber 2 Elogios', 
-        progress: Math.min(user.stats.commendations, 2), 
-        total: 2, 
-        reward: '100 XP', 
-        completed: user.stats.commendations >= 2 
-    },
-    { 
-        id: 3, 
-        title: 'Conquistar 1 MVP', 
-        progress: Math.min(user.stats.mvps, 1), 
-        total: 1, 
-        reward: 'Rare Box', 
-        completed: user.stats.mvps >= 1 
-    },
-  ] : [];
+  // --- DAILY MISSIONS LOGIC ---
+  const todayStr = new Date().toLocaleDateString();
+  
+  // Seleciona 3 missões baseadas na data (Seed) para que mudem todo dia mas sejam iguais para todos
+  const dailyMissions = useMemo(() => {
+      const seed = todayStr.split('/').reduce((acc, val) => acc + parseInt(val), 0);
+      const shuffled = [...MISSION_POOL].sort((a, b) => {
+          const valA = (a.id.charCodeAt(1) + seed) % 100;
+          const valB = (b.id.charCodeAt(1) + seed) % 100;
+          return valA - valB;
+      });
+      return shuffled.slice(0, 3);
+  }, [todayStr]);
+
+  // Calcula progresso baseado no histórico recente (carregado da API)
+  const getMissionProgress = (mission: typeof MISSION_POOL[0]) => {
+      if (!user) return { current: 0, completed: false };
+      
+      const todaysMatches = recentMatches.filter(m => m.date === todayStr);
+      let current = 0;
+
+      if (mission.type === 'play') current = todaysMatches.length;
+      else if (mission.type === 'win') current = todaysMatches.filter(m => m.result === 'VICTORY').length;
+      else if (mission.type === 'play_tryhard') current = todaysMatches.filter(m => m.vibe === 'Tryhard').length;
+      else if (mission.type === 'play_chill') current = todaysMatches.filter(m => m.vibe === 'Chill').length;
+      else if (mission.type === 'play_learning') current = todaysMatches.filter(m => m.vibe === 'Learning').length;
+
+      return { current, completed: current >= mission.target };
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -194,29 +213,34 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote }) => {
               </div>
               
               <div className="space-y-4">
-                 {missions.map(mission => (
-                    <div key={mission.id} className="bg-black/40 rounded-xl p-4 border border-slate-800/50">
-                       <div className="flex justify-between items-start mb-2">
-                          <span className={`text-sm font-medium ${mission.completed ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
-                             {mission.title}
-                          </span>
-                          {mission.completed 
-                             ? <CheckCircle2 size={16} className="text-green-500" />
-                             : <span className="text-[10px] font-bold text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded">{mission.reward}</span>
-                          }
-                       </div>
-                       <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full transition-all duration-500 ${mission.completed ? 'bg-green-500' : 'bg-blue-500'}`} 
-                            style={{width: `${Math.min((mission.progress / mission.total) * 100, 100)}%`}}
-                          ></div>
-                       </div>
-                       <div className="text-right text-[10px] text-slate-500 mt-1">
-                          {mission.progress}/{mission.total}
-                       </div>
-                    </div>
-                 ))}
-                 {missions.length === 0 && <div className="text-slate-500 text-sm text-center">Carregando missões...</div>}
+                 {dailyMissions.map(mission => {
+                    const { current, completed } = getMissionProgress(mission);
+                    const progressPercent = Math.min((current / mission.target) * 100, 100);
+
+                    return (
+                        <div key={mission.id} className="bg-black/40 rounded-xl p-4 border border-slate-800/50">
+                           <div className="flex justify-between items-start mb-2">
+                              <div>
+                                  <span className={`text-sm font-medium block ${completed ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{mission.title}</span>
+                                  <span className="text-[10px] text-slate-500">{mission.desc}</span>
+                              </div>
+                              {completed 
+                                 ? <CheckCircle2 size={16} className="text-green-500" />
+                                 : <span className="text-[10px] font-bold text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded">{mission.reward}</span>
+                              }
+                           </div>
+                           <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-2">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-500 ${completed ? 'bg-green-500' : 'bg-blue-500'}`} 
+                                style={{width: `${progressPercent}%`}}
+                              ></div>
+                           </div>
+                           <div className="text-right text-[10px] text-slate-500 mt-1">
+                              {current}/{mission.target}
+                           </div>
+                        </div>
+                    );
+                 })}
               </div>
            </div>
            

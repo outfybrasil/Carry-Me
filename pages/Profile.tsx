@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { STORE_ITEMS } from '../constants';
 import ScoreGauge from '../components/ScoreGauge';
-import { Paintbrush, Check, Camera, X, Upload, Award, Coins, TrendingUp, Lock, Crown, Crosshair, Target, Shield, Activity, Zap, Brain, MessageSquare } from 'lucide-react';
+import { Paintbrush, Check, Camera, X, Upload, Award, Coins, TrendingUp, Lock, Crown, Crosshair, Target, Shield, Activity, Zap, Brain, MessageSquare, Share2 } from 'lucide-react';
 import { Player, ItemType } from '../types';
 import { api } from '../services/api';
 import {
@@ -90,6 +90,12 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate }) => 
       return <Activity size={16} />;
   }
 
+  const handleShareProfile = () => {
+      const url = `${window.location.origin}/?u=${user.username}`;
+      navigator.clipboard.writeText(url);
+      alert("Link do perfil copiado para a área de transferência!");
+  };
+
   return (
     <>
       {isAvatarModalOpen && (
@@ -138,6 +144,14 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate }) => 
             {/* Banner Background */}
             <div className={`absolute top-0 left-0 w-full h-32 transition-colors ${activeBanner ? activeBanner.value : 'bg-gradient-to-b from-blue-900/50 to-transparent'}`}></div>
             
+            <button 
+                onClick={handleShareProfile}
+                className="absolute top-4 right-4 p-2 bg-black/30 hover:bg-black/50 rounded-full text-white transition-colors z-10"
+                title="Compartilhar Perfil"
+            >
+                <Share2 size={18} />
+            </button>
+
             <div className="relative pt-16 px-6 pb-6">
               {/* Avatar with dynamic border */}
               <div className="relative mx-auto w-32 h-32 mb-4 group/avatar cursor-pointer" onClick={() => setIsAvatarModalOpen(true)}>

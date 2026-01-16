@@ -17,34 +17,46 @@ import PaymentModal from './components/PaymentModal';
 import CookieConsent from './components/CookieConsent';
 import Auth from './pages/Auth';
 import LandingPage from './pages/LandingPage';
+import PublicProfile from './pages/PublicProfile';
 import OnboardingTour from './components/OnboardingTour';
 import CoinCelebration from './components/CoinCelebration';
 import { Player, StoreItem, LobbyConfig, Vibe } from './types';
 import { api } from './services/api';
-import { Loader2, LogOut, AlertTriangle, RefreshCw, MessageSquare, CheckCircle } from 'lucide-react';
+import { Loader2, LogOut, AlertTriangle, RefreshCw, MessageSquare, CheckCircle, X } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 // --- GLOBAL TOAST NOTIFICATION COMPONENT ---
-const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'chat' | 'error', onClose: () => void }) => {
+const Toast = ({ title, message, type, onClose }: { title: string, message: string, type: 'success' | 'chat' | 'error', onClose: () => void }) => {
     useEffect(() => {
-        const timer = setTimeout(onClose, 4000);
+        const timer = setTimeout(onClose, 6000);
         return () => clearTimeout(timer);
     }, [onClose]);
 
     return (
-        <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-right duration-300 pointer-events-none">
-            <div className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md pointer-events-auto ${
-                type === 'chat' ? 'bg-blue-600/90 border-blue-400 text-white' :
-                type === 'success' ? 'bg-green-600/90 border-green-400 text-white' :
-                'bg-red-600/90 border-red-400 text-white'
+        <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-right duration-300 pointer-events-none max-w-sm w-full">
+            <div className={`flex items-start gap-3 px-5 py-4 rounded-xl shadow-2xl border backdrop-blur-md pointer-events-auto ${
+                type === 'chat' ? 'bg-slate-900/95 border-blue-500/50 text-white' :
+                type === 'success' ? 'bg-slate-900/95 border-green-500/50 text-white' :
+                'bg-slate-900/95 border-red-500/50 text-white'
             }`}>
-                <div className="p-2 bg-white/20 rounded-full">
-                    {type === 'chat' ? <MessageSquare size={20} /> : <CheckCircle size={20} />}
+                <div className={`p-2 rounded-full mt-1 ${
+                    type === 'chat' ? 'bg-blue-500/20 text-blue-400' :
+                    type === 'success' ? 'bg-green-500/20 text-green-400' :
+                    'bg-red-500/20 text-red-400'
+                }`}>
+                    {type === 'chat' ? <MessageSquare size={18} /> : <CheckCircle size={18} />}
                 </div>
-                <div>
-                    <h4 className="font-bold text-sm">{type === 'chat' ? 'Nova Mensagem' : 'Notificação'}</h4>
-                    <p className="text-xs opacity-90">{message}</p>
+                <div className="flex-1 min-w-0">
+                    <h4 className={`font-bold text-sm mb-0.5 ${
+                        type === 'chat' ? 'text-blue-400' :
+                        type === 'success' ? 'text-green-400' :
+                        'text-red-400'
+                    }`}>{title}</h4>
+                    <p className="text-sm text-slate-300 leading-relaxed break-words">{message}</p>
                 </div>
+                <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
+                    <X size={16} />
+                </button>
             </div>
         </div>
     );
@@ -82,13 +94,16 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
   const [isLobbyHost, setIsLobbyHost] = useState(false);
+  const [currentLobbyId, setCurrentLobbyId] = useState<string | null>(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [paymentType, setPaymentType] = useState<'PREMIUM' | 'COINS' | null>(null);
   const [recoveryMode, setRecoveryMode] = useState(false);
   const [profileError, setProfileError] = useState(false);
+  const [publicProfileUsername, setPublicProfileUsername] = useState<string | null>(null);
+  const [lastPage, setLastPage] = useState('dashboard');
   
   // Notification State
-  const [toast, setToast] = useState<{msg: string, type: 'success' | 'chat' | 'error'} | null>(null);
+  const [toast, setToast] = useState<{title: string, msg: string, type: 'success' | 'chat' | 'error'} | null>(null);
   const [coinDiff, setCoinDiff] = useState<number | null>(null); // For CoinCelebration
 
   // Onboarding State
@@ -221,11 +236,20 @@ const App: React.FC = () => {
     const checkHash = () => {
         const hash = window.location.hash;
         const query = window.location.search;
+        const params = new URLSearchParams(query);
+
         if ((hash && hash.includes('type=recovery')) || (query && query.includes('type=recovery'))) {
             setRecoveryMode(true);
             setLoading(false);
             return true;
         }
+        
+        const publicUser = params.get('u');
+        if (publicUser) {
+            setPublicProfileUsername(publicUser);
+            setCurrentPage('public-profile');
+        }
+
         return false;
     };
 
@@ -322,8 +346,8 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Direct Messages Listener
-    const chatChannel = supabase.channel('global_notifications')
+    // 1. Direct Messages Listener (Chat)
+    const chatChannel = supabase.channel('realtime_chat')
         .on(
             'postgres_changes',
             { 
@@ -332,11 +356,45 @@ const App: React.FC = () => {
                 table: 'direct_messages',
                 filter: `receiver_id=eq.${user.id}`
             }, 
-            (payload) => {
+            async (payload) => {
+                const newMessage = payload.new as any;
+                
+                // Fetch sender info
+                const { data: sender } = await supabase.from('profiles').select('username').eq('id', newMessage.sender_id).single();
+                const senderName = sender?.username || 'Alguém';
+
                 playUiSound('notification');
                 setToast({
-                    msg: "Você recebeu uma nova mensagem!",
+                    title: `Mensagem de ${senderName}`,
+                    msg: newMessage.text,
                     type: 'chat'
+                });
+            }
+        )
+        .subscribe();
+
+    // 2. System Notifications Listener
+    const notificationChannel = supabase.channel('realtime_notifications')
+        .on(
+            'postgres_changes',
+            {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'notifications',
+                filter: `user_id=eq.${user.id}`
+            },
+            (payload) => {
+                const newNotif = payload.new as any;
+                playUiSound('notification');
+                
+                let type: 'success' | 'chat' | 'error' = 'chat';
+                if (newNotif.type === 'success' || newNotif.type === 'reward') type = 'success';
+                if (newNotif.type === 'warning') type = 'error';
+
+                setToast({
+                    title: newNotif.title,
+                    msg: newNotif.message,
+                    type: type
                 });
             }
         )
@@ -371,6 +429,7 @@ const App: React.FC = () => {
 
     return () => {
         supabase.removeChannel(chatChannel);
+        supabase.removeChannel(notificationChannel);
         supabase.removeChannel(profileChannel);
     };
   }, [user]);
@@ -410,6 +469,12 @@ const App: React.FC = () => {
     setCurrentPage('dashboard');
   };
 
+  const handleViewPublicProfile = (username: string) => {
+      setLastPage(currentPage);
+      setPublicProfileUsername(username);
+      setCurrentPage('public-profile');
+  };
+
   const triggerPayment = (type: 'PREMIUM' | 'COINS') => {
     setPaymentType(type);
     setIsPaymentOpen(true);
@@ -421,11 +486,12 @@ const App: React.FC = () => {
       setIsPaymentOpen(false);
   };
 
-  const handleEnterLobby = (asHost: boolean, config?: LobbyConfig) => {
+  const handleEnterLobby = (asHost: boolean, config?: LobbyConfig, lobbyId?: string) => {
     setIsLobbyHost(asHost);
     if (config) {
         setCurrentLobbyConfig(config);
     }
+    if (lobbyId) setCurrentLobbyId(lobbyId);
     setCurrentPage('lobby-room');
   };
 
@@ -533,6 +599,9 @@ const App: React.FC = () => {
   }
 
   if (!user) {
+    if (currentPage === 'public-profile' && publicProfileUsername) {
+        return <PublicProfile username={publicProfileUsername} onBack={() => { setPublicProfileUsername(null); setCurrentPage('dashboard'); }} />;
+    }
     if (currentPage === 'terms') {
       return <div className="min-h-screen bg-[#020202]"><TermsOfService onBack={() => setCurrentPage('dashboard')} /></div>;
     }
@@ -562,8 +631,8 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'dashboard': return <Dashboard onFindMatch={() => setCurrentPage('match')} onVote={() => setShowVotingOverride(true)} />;
       case 'profile': return <Profile user={user} onEquip={handleEquipItem} onProfileUpdate={handleProfileUpdated} />;
-      case 'friends': return <Friends user={user} />;
-      case 'sherpa': return <SherpaMarket user={user} onUpdateUser={refreshUser} />;
+      case 'friends': return <Friends user={user} onViewProfile={handleViewPublicProfile} />;
+      case 'sherpa': return <SherpaMarket user={user} onUpdateUser={refreshUser} onViewProfile={handleViewPublicProfile} />;
       case 'achievements': return <Achievements user={user} onUpdateUser={refreshUser} />;
       case 'shop': return <Shop user={user} onBuy={handleBuyItem} onAddCoins={() => triggerPayment('COINS')} />;
       case 'match': return (
@@ -571,8 +640,8 @@ const App: React.FC = () => {
             onCancel={() => setCurrentPage('dashboard')} 
             isPremium={!!user.isPremium} 
             onUpgrade={() => triggerPayment('PREMIUM')} 
-            onMatchFound={() => handleEnterLobby(false)} 
-            onCreateLobby={(config) => handleEnterLobby(true, config)} 
+            onMatchFound={(lobbyId, config) => handleEnterLobby(false, config, lobbyId)} 
+            onCreateLobby={(config, lobbyId) => handleEnterLobby(true, config, lobbyId)} 
         />
       );
       case 'lobby-room': return (
@@ -580,14 +649,17 @@ const App: React.FC = () => {
             user={user} 
             isHost={isLobbyHost} 
             config={currentLobbyConfig}
+            lobbyId={currentLobbyId}
             onStartGame={handleStartGame} 
             onLeaveLobby={() => setCurrentPage('dashboard')} 
+            onViewProfile={handleViewPublicProfile}
         />
       );
       case 'active-match': return <ActiveMatch onFinish={handleFinishMatch} />;
       case 'settings': return <Settings user={user} onLogout={handleLogout} onNavigate={setCurrentPage} volume={volume} onVolumeChange={setVolume} />;
       case 'terms': return <TermsOfService onBack={() => setCurrentPage('settings')} />; 
       case 'privacy': return <PrivacyPolicy onBack={() => setCurrentPage('settings')} />;
+      case 'public-profile': return <PublicProfile username={publicProfileUsername || ''} onBack={() => setCurrentPage(lastPage)} />;
       default: return <Dashboard onFindMatch={() => setCurrentPage('match')} onVote={() => setShowVotingOverride(true)} />;
     }
   };
@@ -607,6 +679,7 @@ const App: React.FC = () => {
       {/* RENDER GLOBAL TOAST */}
       {toast && (
           <Toast 
+              title={toast.title}
               message={toast.msg} 
               type={toast.type} 
               onClose={() => setToast(null)} 

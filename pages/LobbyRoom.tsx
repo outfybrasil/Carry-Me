@@ -9,11 +9,13 @@ interface LobbyRoomProps {
   user: Player;
   isHost: boolean;
   config: LobbyConfig;
+  lobbyId?: string | null;
   onStartGame: () => void;
   onLeaveLobby: () => void;
+  onViewProfile: (username: string) => void;
 }
 
-const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame, onLeaveLobby }) => {
+const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, lobbyId: propLobbyId, onStartGame, onLeaveLobby, onViewProfile }) => {
   // Initialize with ONLY the current user
   const [players, setPlayers] = useState<LobbyPlayer[]>([
     {
@@ -40,7 +42,7 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
   
   // Use a simulated Lobby ID based on the config title to group messages roughly
   // In a full app, this would be passed via props or URL params from the Matchmaking Logic
-  const lobbyId = "lobby_demo_" + (config.game || "general").replace(/\s/g, '_').toLowerCase();
+  const lobbyId = propLobbyId || "lobby_demo_" + (config.game || "general").replace(/\s/g, '_').toLowerCase();
   
   const maxPlayers = config.maxPlayers || 5;
   const lobbyLink = `${window.location.origin}/join/${lobbyId}`;
@@ -51,6 +53,31 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [chat, mobileTab]);
+
+  // --- SYNC PLAYERS (REAL LOBBY) ---
+  useEffect(() => {
+      if (!propLobbyId) return;
+
+      const channel = supabase.channel(`lobby_state:${propLobbyId}`)
+          .on(
+              'postgres_changes',
+              {
+                  event: 'UPDATE',
+                  schema: 'public',
+                  table: 'lobbies',
+                  filter: `id=eq.${propLobbyId}`
+              },
+              (payload) => {
+                  const updatedLobby = payload.new;
+                  if (updatedLobby.players) {
+                      setPlayers(updatedLobby.players);
+                  }
+              }
+          )
+          .subscribe();
+      
+      return () => { supabase.removeChannel(channel); };
+  }, [propLobbyId]);
 
   // --- SUPABASE REALTIME SUBSCRIPTION ---
   useEffect(() => {
@@ -132,7 +159,12 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
   const toggleReady = () => {
     const newState = !userReady;
     setUserReady(newState);
-    setPlayers(prev => prev.map(p => p.id === user.id ? { ...p, isReady: newState } : p));
+    
+    const updatedPlayers = players.map(p => p.id === user.id ? { ...p, isReady: newState } : p);
+    setPlayers(updatedPlayers);
+    
+    // Sync with DB if real lobby
+    if (propLobbyId) api.updateLobbyPlayers(propLobbyId, updatedPlayers);
   };
 
   const copyInvite = () => {
@@ -186,7 +218,7 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
                    </div>
                    <div className="ml-3 md:ml-4 flex-1 overflow-hidden">
                      <div className="flex items-center gap-2">
-                       <span className="font-bold text-white text-sm md:text-base truncate">{player.username}</span>
+                       <span onClick={() => onViewProfile(player.username)} className="font-bold text-white text-sm md:text-base truncate cursor-pointer hover:underline">{player.username}</span>
                        <span className={`text-[10px] px-1.5 py-0.5 rounded border hidden sm:inline-block ${player.score >= 80 ? 'border-green-500/30 text-green-400 bg-green-500/10' : 'border-slate-600 text-slate-400'}`}>
                          {player.score} Rep
                        </span>

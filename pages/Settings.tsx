@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, Bell, Volume2, Trash2, Save, LogOut, Moon, Eye, Settings as SettingsIcon, Link, Gamepad2, CheckCircle, RefreshCw, ExternalLink, X, HelpCircle, Check, History } from 'lucide-react';
+import { Shield, Bell, Volume2, Trash2, Save, LogOut, Moon, Eye, Settings as SettingsIcon, Link, Gamepad2, CheckCircle, RefreshCw, ExternalLink, X, HelpCircle, Check, History, Camera } from 'lucide-react';
 import { Player, Transaction } from '../types';
 import { api } from '../services/api';
 
@@ -157,9 +157,40 @@ const Settings: React.FC<SettingsProps> = ({ user, onLogout, onNavigate, volume,
       }
   }
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!e.target.files || e.target.files.length === 0) return;
+      const file = e.target.files[0];
+      
+      setUpdating(true);
+      try {
+          await api.uploadAvatar(user.id, file);
+          alert("Avatar atualizado com sucesso!");
+      } catch (error) {
+          console.error(error);
+          alert("Erro ao fazer upload da imagem.");
+      } finally {
+          setUpdating(false);
+      }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
       <h1 className="text-3xl font-bold text-white mb-6">Configurações</h1>
+
+      {/* Avatar Upload Section */}
+      <div className="flex items-center gap-6 bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <div className="relative group">
+              <img src={user.avatar} className="w-24 h-24 rounded-full border-4 border-slate-800 object-cover" alt="Avatar" />
+              <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                  <Camera size={24} className="text-white" />
+                  <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} disabled={updating} />
+              </label>
+          </div>
+          <div>
+              <h2 className="text-xl font-bold text-white">Foto de Perfil</h2>
+              <p className="text-slate-400 text-sm">Clique na imagem para alterar. Suporta JPG, PNG ou GIF.</p>
+          </div>
+      </div>
 
       {/* Game Accounts Hub (New Design) */}
       <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-8 relative overflow-hidden">

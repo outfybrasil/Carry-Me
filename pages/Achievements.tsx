@@ -1,8 +1,23 @@
 import React, { useState } from 'react';
-import { Trophy, Gamepad2, Swords, Heart, ShieldCheck, GraduationCap, Check, Coins } from 'lucide-react';
-import { ACHIEVEMENTS_LIST } from '../constants';
+import { Trophy, Gamepad2, Swords, Heart, ShieldCheck, GraduationCap, Check, Coins, Crown, Star } from 'lucide-react';
 import { Player, Achievement } from '../types';
 import { api } from '../services/api';
+
+// LISTA EXPANDIDA DE CONQUISTAS
+const ACHIEVEMENTS_LIST: Achievement[] = [
+  { id: 'ach1', title: 'Primeiros Passos', description: 'Jogue sua primeira partida.', icon: 'Gamepad2', targetValue: 1, reward: 50, statKey: 'matchesPlayed' },
+  { id: 'ach2', title: 'Veterano', description: 'Complete 50 partidas.', icon: 'Swords', targetValue: 50, reward: 500, statKey: 'matchesPlayed' },
+  { id: 'ach3', title: 'Lenda Viva', description: 'Complete 100 partidas.', icon: 'Trophy', targetValue: 100, reward: 1000, statKey: 'matchesPlayed' },
+  { id: 'ach4', title: 'MVP', description: 'Seja o jogador mais valioso.', icon: 'Crown', targetValue: 1, reward: 100, statKey: 'mvps' },
+  { id: 'ach5', title: 'Carry', description: 'Conquiste 10 MVPs.', icon: 'Crown', targetValue: 10, reward: 1000, statKey: 'mvps' },
+  { id: 'ach6', title: 'Amigável', description: 'Receba 5 elogios.', icon: 'Heart', targetValue: 5, reward: 200, statKey: 'commendations' },
+  { id: 'ach7', title: 'Ídolo', description: 'Receba 20 elogios.', icon: 'Heart', targetValue: 20, reward: 800, statKey: 'commendations' },
+  { id: 'ach8', title: 'Mentor', description: 'Realize 1 sessão como Sherpa.', icon: 'GraduationCap', targetValue: 1, reward: 300, statKey: 'sherpaSessions' },
+  { id: 'ach9', title: 'Mestre', description: 'Realize 5 sessões como Sherpa.', icon: 'GraduationCap', targetValue: 5, reward: 1500, statKey: 'sherpaSessions' },
+  { id: 'ach10', title: 'Exemplar', description: 'Mantenha comportamento perfeito por 5 jogos.', icon: 'ShieldCheck', targetValue: 5, reward: 250, statKey: 'perfectBehaviorStreak' },
+  { id: 'ach11', title: 'Santo', description: 'Mantenha comportamento perfeito por 20 jogos.', icon: 'ShieldCheck', targetValue: 20, reward: 1000, statKey: 'perfectBehaviorStreak' },
+  { id: 'ach12', title: 'Imortal', description: 'Jogue 500 partidas.', icon: 'Star', targetValue: 500, reward: 5000, statKey: 'matchesPlayed' },
+];
 
 interface AchievementsProps {
   user: Player;
@@ -19,6 +34,8 @@ const Achievements: React.FC<AchievementsProps> = ({ user, onUpdateUser }) => {
       case 'Heart': return <Heart size={24} />;
       case 'ShieldCheck': return <ShieldCheck size={24} />;
       case 'GraduationCap': return <GraduationCap size={24} />;
+      case 'Crown': return <Crown size={24} />;
+      case 'Star': return <Star size={24} />;
       default: return <Trophy size={24} />;
     }
   };

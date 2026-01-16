@@ -9,8 +9,8 @@ interface MatchLobbyProps {
   onCancel: () => void;
   isPremium: boolean;
   onUpgrade: () => void;
-  onMatchFound: () => void;
-  onCreateLobby: (config: LobbyConfig) => void;
+  onMatchFound: (lobbyId?: string, config?: LobbyConfig) => void;
+  onCreateLobby: (config: LobbyConfig, lobbyId?: string) => void;
 }
 
 const GAMES = [
@@ -27,10 +27,11 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
   const [selectedVibe, setSelectedVibe] = useState<Vibe>(Vibe.TRYHARD);
   
   // Search State Machine
-  const [searchStatus, setSearchStatus] = useState<'idle' | 'searching' | 'expanding' | 'found' | 'failed'>('idle');
+  const [searchStatus, setSearchStatus] = useState<'idle' | 'searching' | 'expanding' | 'found' | 'failed' | 'browsing'>('idle');
   const [timer, setTimer] = useState(0);
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [playersInQueue, setPlayersInQueue] = useState(0);
+  const [foundLobbies, setFoundLobbies] = useState<any[]>([]);
 
   // Host State
   const [lobbyConfig, setLobbyConfig] = useState<LobbyConfig>({
@@ -156,12 +157,17 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const handleCreateLobby = () => {
+  const handleCreateLobby = async () => {
     if(!lobbyConfig.title) {
         alert("Por favor, dê um nome para sua sala.");
         return;
     }
-    onCreateLobby(lobbyConfig);
+    
+    const user = await api.checkSession();
+    if(user) {
+        const lobbyId = await api.createLobby(lobbyConfig, user);
+        if(lobbyId) onCreateLobby(lobbyConfig, lobbyId);
+    }
   };
 
   const handleGameSelect = (gameId: string, gameName: string, maxPlayers: number) => {
@@ -174,12 +180,42 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
   };
 
   const startSearch = async () => {
+      setSearchStatus('searching');
+      const gameName = GAMES.find(g => g.id === selectedGame)?.name || '';
+      
+      // Fetch lobbies instead of auto-joining
+      const lobbies = await api.getOpenLobbies(gameName, selectedVibe);
+      setFoundLobbies(lobbies);
+      setSearchStatus('browsing');
+  };
+
+  const joinSpecificLobby = async (lobby: any) => {
       const user = await api.checkSession();
       if(!user) return;
 
+      const success = await api.joinLobby(lobby.id, user);
+      if (success) {
+          const config = {
+              title: lobby.title,
+              game: lobby.game,
+              vibe: lobby.vibe,
+              minScore: lobby.min_score,
+              micRequired: lobby.mic_required,
+              maxPlayers: lobby.max_players
+          };
+          onMatchFound(lobby.id, config);
+      } else {
+          alert("Não foi possível entrar na sala (pode estar cheia ou fechada).");
+          startSearch(); // Refresh list
+      }
+  };
+
+  const joinAutoQueue = async () => {
+      const user = await api.checkSession();
+      if(!user) return;
       const gameName = GAMES.find(g => g.id === selectedGame)?.name || '';
       
-      // 1. Join DB Queue
+      // Join DB Queue
       const success = await api.joinQueue(user.id, gameName, selectedVibe);
       
       if(success) {
@@ -193,7 +229,7 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
               playSuccess();
           }, 8000);
       }
-  };
+  }
 
   const cancelSearch = async () => {
       const user = await api.checkSession();
@@ -276,7 +312,7 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
       </div>
 
       {searchStatus !== 'idle' ? (
-        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center bg-slate-900/50 rounded-3xl border border-slate-800 transition-all relative overflow-hidden p-6">
+        <div className={`flex flex-col ${searchStatus === 'browsing' ? 'items-stretch justify-start text-left' : 'items-center justify-center text-center'} min-h-[50vh] bg-slate-900/50 rounded-3xl border border-slate-800 transition-all relative overflow-hidden p-6`}>
            
            {/* Dynamic Background for Searching */}
            {(searchStatus === 'searching' || searchStatus === 'expanding') && (
@@ -350,6 +386,68 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
                     </button>
                     <p className="text-xs text-slate-500 uppercase tracking-widest animate-pulse">Aceitar automaticamente em 10s...</p>
                 </div>
+             </div>
+           )}
+
+           {/* BROWSING STATE (Lobby List) */}
+           {searchStatus === 'browsing' && (
+             <div className="w-full max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-white">Salas Disponíveis</h2>
+                    <button onClick={startSearch} className="p-2 bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors" title="Atualizar">
+                        <RefreshCw size={18} className="text-slate-400" />
+                    </button>
+                </div>
+
+                {foundLobbies.length > 0 ? (
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+                        {foundLobbies.map((lobby: any) => {
+                            const host = lobby.players?.find((p: any) => p.isHost) || lobby.players?.[0];
+                            return (
+                                <div key={lobby.id} className="bg-slate-950 border border-slate-800 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between hover:border-blue-500/50 transition-all group gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="relative">
+                                            <img src={host?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=host'} className="w-12 h-12 rounded-full border border-slate-700" />
+                                            <div className="absolute -bottom-1 -right-1 bg-slate-900 rounded-full p-0.5">
+                                                <Crown size={12} className="text-amber-500 fill-amber-500" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors">{lobby.title || 'Lobby sem título'}</h3>
+                                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                                                <span className="flex items-center gap-1"><Users size={12}/> {lobby.players?.length || 1}/{lobby.max_players}</span>
+                                                {lobby.mic_required && <span className="flex items-center gap-1 text-slate-400"><Mic size={12}/> Mic On</span>}
+                                                {lobby.min_score > 0 && <span className="text-green-400 font-bold">{lobby.min_score}+ Rep</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => joinSpecificLobby(lobby)}
+                                        className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-colors shadow-lg shadow-blue-600/20 w-full sm:w-auto"
+                                    >
+                                        Entrar
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="text-center py-12 bg-black/20 rounded-xl border border-white/5">
+                        <Users size={48} className="mx-auto text-slate-600 mb-4 opacity-50" />
+                        <h3 className="text-xl font-bold text-white mb-2">Nenhuma sala encontrada</h3>
+                        <p className="text-slate-400 mb-6">Não há lobbies abertos para {selectedVibe} no momento.</p>
+                        <div className="flex flex-col sm:flex-row justify-center gap-4">
+                            <button onClick={() => setActiveTab('create')} className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold rounded-xl transition-colors">
+                                Criar Sala
+                            </button>
+                            <button onClick={joinAutoQueue} className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors">
+                                Entrar na Fila Automática
+                            </button>
+                        </div>
+                    </div>
+                )}
+                
+                <button onClick={cancelSearch} className="mt-6 text-slate-500 hover:text-white text-sm underline w-full text-center">Voltar</button>
              </div>
            )}
         </div>

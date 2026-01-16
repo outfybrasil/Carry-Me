@@ -7,9 +7,10 @@ import { api } from '../services/api';
 interface SherpaMarketProps {
   user?: Player;
   onUpdateUser?: () => void;
+  onViewProfile: (username: string) => void;
 }
 
-const SherpaMarket: React.FC<SherpaMarketProps> = ({ user, onUpdateUser }) => {
+const SherpaMarket: React.FC<SherpaMarketProps> = ({ user, onUpdateUser, onViewProfile }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [step, setStep] = useState<'requirements' | 'form' | 'success'>('requirements');
   
@@ -379,7 +380,7 @@ const SherpaMarket: React.FC<SherpaMarketProps> = ({ user, onUpdateUser }) => {
                 <div className="flex items-center space-x-3">
                   <img src={sherpa.player.avatar} alt={sherpa.player.username} className="w-12 h-12 rounded-full border-2 border-blue-500" />
                   <div>
-                    <h3 className="font-bold text-lg text-white group-hover:text-blue-400 transition-colors flex items-center gap-1">
+                    <h3 onClick={() => onViewProfile(sherpa.player.username)} className="font-bold text-lg text-white group-hover:text-blue-400 transition-colors flex items-center gap-1 cursor-pointer hover:underline">
                       {sherpa.player.username}
                       <ShieldCheck size={16} className="text-blue-500" />
                     </h3>

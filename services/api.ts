@@ -1,6 +1,6 @@
 
 import { supabase } from '../lib/supabase';
-import { Player, AppNotification, Friend, FriendRequest, AdvancedStats, Match, ChatMessage, Transaction } from '../types';
+import { Player, AppNotification, Friend, FriendRequest, AdvancedStats, Match, ChatMessage, Transaction, LobbyConfig } from '../types';
 
 // NOTE: API Keys are now removed from client-side code for security.
 // They must be configured in Supabase Edge Functions environment variables.
@@ -148,6 +148,95 @@ export const api = {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
+  },
+
+  // --- REAL LOBBY SYSTEM ---
+  
+  async createLobby(config: LobbyConfig, host: Player) {
+      const playerEntry = {
+          id: host.id,
+          username: host.username,
+          avatar: host.avatar,
+          isHost: true,
+          isReady: true,
+          role: 'Flex',
+          score: host.score
+      };
+      
+      const { data, error } = await supabase.from('lobbies').insert({
+          host_id: host.id,
+          title: config.title,
+          game: config.game,
+          vibe: config.vibe,
+          min_score: config.minScore,
+          mic_required: config.micRequired,
+          max_players: config.maxPlayers,
+          players: [playerEntry],
+          status: 'OPEN'
+      }).select().single();
+      
+      if(error) {
+          console.error("Error creating lobby:", error);
+          return null;
+      }
+      return data.id;
+  },
+
+  async findOpenLobby(game: string, vibe: string) {
+      const { data } = await supabase.from('lobbies')
+          .select('*')
+          .eq('game', game)
+          .eq('vibe', vibe)
+          .eq('status', 'OPEN')
+          .limit(10);
+      
+      if(data && data.length > 0) {
+          // Find one with space
+          const available = data.find((l: any) => l.players.length < l.max_players);
+          return available;
+      }
+      return null;
+  },
+
+  async getOpenLobbies(game: string, vibe: string) {
+      const { data } = await supabase.from('lobbies')
+          .select('*')
+          .eq('game', game)
+          .eq('vibe', vibe)
+          .eq('status', 'OPEN')
+          .order('created_at', { ascending: false })
+          .limit(20);
+      
+      if(data) {
+          return data.filter((l: any) => (l.players || []).length < l.max_players);
+      }
+      return [];
+  },
+
+  async joinLobby(lobbyId: string, user: Player) {
+      const { data: lobby } = await supabase.from('lobbies').select('players').eq('id', lobbyId).single();
+      if(!lobby) return false;
+      
+      const playerEntry = {
+          id: user.id,
+          username: user.username,
+          avatar: user.avatar,
+          isHost: false,
+          isReady: false,
+          role: 'Flex',
+          score: user.score
+      };
+      
+      // Check if already in
+      if(lobby.players.some((p: any) => p.id === user.id)) return true;
+
+      const newPlayers = [...lobby.players, playerEntry];
+      const { error } = await supabase.from('lobbies').update({ players: newPlayers }).eq('id', lobbyId);
+      return !error;
+  },
+
+  async updateLobbyPlayers(lobbyId: string, players: any[]) {
+      await supabase.from('lobbies').update({ players }).eq('id', lobbyId);
   },
 
   // --- STATS & ANALYTICS ---
@@ -306,9 +395,39 @@ export const api = {
     }
   },
 
+  async getProfileByUsername(username: string): Promise<Player | null> {
+    const { data: profile } = await supabase.from('profiles').select('*').eq('username', username).maybeSingle();
+    if (!profile) return null;
+
+    let inventory: any[] = [];
+    try {
+        const { data: invData } = await supabase.from('inventory').select('item_id').eq('user_id', profile.id);
+        inventory = invData || [];
+    } catch(e) {
+        console.warn("Failed to fetch inventory for public profile", e);
+    }
+    
+    return transformProfile(profile, inventory);
+  },
+
   async updateAvatar(userId: string, newUrl: string) {
     const { error } = await supabase.from('profiles').update({ avatar: newUrl }).eq('id', userId);
     return !error;
+  },
+
+  async uploadAvatar(userId: string, file: File) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      await this.updateAvatar(userId, data.publicUrl);
+      return data.publicUrl;
   },
 
   async updateGameAccounts(userId: string, riotId: string, steamId: string, gameAuthCode?: string) {
@@ -676,6 +795,25 @@ export const api = {
     await supabase.from('friendships').delete().eq('id', requestId);
   },
 
+  async removeFriend(myId: string, friendId: string) {
+    const { error } = await supabase.from('friendships')
+        .delete()
+        .or(`and(user_id_1.eq.${myId},user_id_2.eq.${friendId}),and(user_id_1.eq.${friendId},user_id_2.eq.${myId})`);
+    return !error;
+  },
+
+  async blockUser(blockerId: string, blockedId: string) {
+    // 1. Remove friendship if exists
+    await this.removeFriend(blockerId, blockedId);
+    
+    // 2. Add to blocked_users
+    const { error } = await supabase.from('blocked_users').insert({
+        blocker_id: blockerId,
+        blocked_id: blockedId
+    });
+    return !error;
+  },
+
   // --- SHERPA ---
   async becomeSherpa(userId: string, hourlyRate: number, specialties: string[]) {
     const { error } = await supabase.from('profiles').update({ is_sherpa: true, sherpa_data: { hourlyRate, specialties } }).eq('id', userId);
@@ -692,13 +830,13 @@ export const api = {
   },
 
   // --- PAYMENT ---
-  async createMercadoPagoPreference(userId: string, title: string, price: number): Promise<string | null> {
+  async createMercadoPagoPreference(userId: string, email: string, title: string, price: number, method: 'ALL' | 'PIX' = 'ALL'): Promise<any> {
     try {
         const { data, error } = await supabase.functions.invoke('create-payment', {
-            body: { userId, title, price, origin: window.location.origin }
+            body: { userId, email, title, price, origin: window.location.origin, method }
         });
         if (error) throw error;
-        return data?.init_point || null;
+        return data || null;
     } catch (e) {
         console.error("Payment Error:", e);
         return null; 

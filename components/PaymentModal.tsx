@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Lock, CheckCircle, Loader2, ExternalLink, ShieldCheck, Coins } from 'lucide-react';
+import { X, Lock, CheckCircle, Loader2, ExternalLink, ShieldCheck, Coins, Copy } from 'lucide-react';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 
@@ -20,16 +20,19 @@ const COIN_PACKS = [
 ];
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess, itemTitle, price, type }) => {
-  const [status, setStatus] = useState<'idle' | 'loading' | 'redirecting' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'redirecting' | 'pix_display' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [selectedPack, setSelectedPack] = useState<{coins: number, price: number, label: string} | null>(null);
   const [paymentUrl, setPaymentUrl] = useState('');
+  const [pixData, setPixData] = useState<{qr_code: string, qr_code_base64: string} | null>(null);
+  const [copiedPix, setCopiedPix] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setStatus('idle');
       setErrorMessage('');
       setPaymentUrl('');
+      setPixData(null);
       
       // Se for compra de moedas, seleciona o pacote padrão (1000) ou reseta
       if (type === 'COINS') {
@@ -79,38 +82,51 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
   }, [isOpen, onSuccess]);
 
 
-  const handleMercadoPagoCheckout = async () => {
+  const handleMercadoPagoCheckout = async (method: 'ALL' | 'PIX' = 'ALL') => {
     setStatus('loading');
     setErrorMessage('');
     
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser(); // Pega o usuário atual
     if(!user) return;
 
     const finalTitle = type === 'COINS' && selectedPack ? `${selectedPack.coins} CarryCoins` : itemTitle;
     const finalPrice = type === 'COINS' && selectedPack ? selectedPack.price : price;
 
     // Call Backend
-    const checkoutUrl = await api.createMercadoPagoPreference(user.id, finalTitle, finalPrice);
+    const data = await api.createMercadoPagoPreference(user.id, user.email || 'user@carryme.gg', finalTitle, finalPrice, method);
     
-    if (checkoutUrl) {
-      setPaymentUrl(checkoutUrl);
-      setStatus('redirecting');
-      window.open(checkoutUrl, '_blank');
+    if (data) {
+      if (data.type === 'PIX_DIRECT') {
+          setPixData(data);
+          setStatus('pix_display');
+      } else if (data.init_point) {
+          setPaymentUrl(data.init_point);
+          setStatus('redirecting');
+          window.open(data.init_point, '_blank');
+      }
     } else {
       setStatus('error');
       setErrorMessage("Não foi possível conectar ao Mercado Pago. Verifique se o Access Token está configurado corretamente na Edge Function.");
     }
   };
 
+  const handleCopyPix = () => {
+      if (pixData?.qr_code) {
+          navigator.clipboard.writeText(pixData.qr_code);
+          setCopiedPix(true);
+          setTimeout(() => setCopiedPix(false), 2000);
+      }
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-[#0f172a] border border-slate-800 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden relative">
+      <div className="bg-[#0f172a] border border-slate-800 rounded-3xl max-w-md w-full shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
         
         {/* Close Button */}
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white z-20 transition-colors">
-          <X size={24} />
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full z-20 transition-all backdrop-blur-sm">
+          <X size={20} />
         </button>
 
         {/* Header Image / Gradient */}
@@ -166,13 +182,21 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
             {status === 'idle' && (
                 <div className="space-y-3">
                     <button 
-                        onClick={handleMercadoPagoCheckout}
+                        onClick={() => handleMercadoPagoCheckout('ALL')}
                         className="w-full py-4 bg-[#009EE3] hover:bg-[#008CC9] text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-3 group relative overflow-hidden"
                     >
                         <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                         <span className="relative z-10 flex items-center gap-2">
                             Pagar com Mercado Pago <ExternalLink size={18} />
                         </span>
+                    </button>
+
+                    <button 
+                        onClick={() => handleMercadoPagoCheckout('PIX')}
+                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+                    >
+                        <img src="https://img.icons8.com/color/48/pix.png" className="w-5 h-5" alt="Pix" />
+                        Pagar via Pix (Instantâneo)
                     </button>
                     <p className="text-[10px] text-slate-500">
                         Aceitamos Pix, Cartão de Crédito e Débito.
@@ -199,6 +223,33 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
                             Clique aqui se a janela não abriu
                         </a>
                     )}
+                </div>
+            )}
+
+            {status === 'pix_display' && pixData && (
+                <div className="py-4 animate-in zoom-in">
+                    <h3 className="text-lg font-bold text-white mb-2">Escaneie o QR Code</h3>
+                    <p className="text-xs text-slate-400 mb-4">Abra o app do seu banco e pague via Pix.</p>
+                    
+                    <div className="bg-white p-2 rounded-xl w-48 h-48 mx-auto mb-4">
+                        <img src={`data:image/png;base64,${pixData.qr_code_base64}`} alt="QR Code Pix" className="w-full h-full" />
+                    </div>
+
+                    <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center gap-2 mb-4">
+                        <input 
+                            type="text" 
+                            readOnly 
+                            value={pixData.qr_code} 
+                            className="bg-transparent text-xs text-slate-500 flex-1 outline-none truncate"
+                        />
+                        <button onClick={handleCopyPix} className="text-blue-400 hover:text-white transition-colors">
+                            {copiedPix ? <CheckCircle size={16} /> : <Copy size={16} />}
+                        </button>
+                    </div>
+
+                    <div className="flex items-center justify-center gap-2 text-xs text-yellow-500 animate-pulse">
+                        <Loader2 size={12} className="animate-spin" /> Aguardando pagamento...
+                    </div>
                 </div>
             )}
 
