@@ -229,6 +229,15 @@ export const api = {
     return data;
   },
 
+  async loginWithGoogle() {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin, skipBrowserRedirect: false },
+    });
+    if (error) throw error;
+    return data;
+  },
+
   async checkSession(): Promise<Player | null> {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();

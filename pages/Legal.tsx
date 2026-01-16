@@ -14,7 +14,7 @@ export const TermsOfService: React.FC<{ onBack: () => void }> = ({ onBack }) => 
 
       <section>
         <h2 className="text-xl font-bold text-white mb-2">1. Aceitação dos Termos</h2>
-        <p>Ao acessar e usar a plataforma CarryMe, você concorda em cumprir estes Termos de Uso. Se você não concordar com qualquer parte destes termos, você não deve usar nossos serviços.</p>
+        <p>Ao acessar e usar a plataforma CarryMe (distribuída pela Outfy), você concorda em cumprir estes Termos de Uso. Se você não concordar com qualquer parte destes termos, você não deve usar nossos serviços.</p>
       </section>
 
       <section>
@@ -35,7 +35,7 @@ export const TermsOfService: React.FC<{ onBack: () => void }> = ({ onBack }) => 
       
       <section>
          <h2 className="text-xl font-bold text-white mb-2">4. Responsabilidade</h2>
-         <p>A CarryMe atua como intermediária para encontrar partidas. Não somos responsáveis pelo comportamento dos usuários dentro dos jogos de terceiros (LoL, CS2, etc), embora façamos o possível para moderar nossa comunidade.</p>
+         <p>A Outfy (através do CarryMe) atua como intermediária para encontrar partidas. Não somos responsáveis pelo comportamento dos usuários dentro dos jogos de terceiros (LoL, CS2, etc), embora façamos o possível para moderar nossa comunidade.</p>
       </section>
     </div>
   </div>

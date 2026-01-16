@@ -260,8 +260,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
       <footer className="bg-black py-12 text-center text-slate-600 text-sm border-t border-white/5 relative z-10">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center gap-2 mb-4 md:mb-0 opacity-50 hover:opacity-100 transition-opacity">
-               <div className="w-6 h-6 bg-white text-black rounded flex items-center justify-center font-bold text-xs">C</div>
-               <span className="font-bold">CarryMe &copy; 2026</span>
+               <div className="w-6 h-6 bg-white text-black rounded flex items-center justify-center font-bold text-xs">O</div>
+               <span className="font-bold">Outfy &copy; 2026</span>
             </div>
             <div className="flex gap-6">
                 <button onClick={onViewTerms} className="hover:text-white transition-colors">Termos</button>
