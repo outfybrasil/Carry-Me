@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { STORE_ITEMS } from '../constants';
 import ScoreGauge from '../components/ScoreGauge';
-import { Paintbrush, Check, Camera, X, Upload, Award, Coins, TrendingUp, Lock, Crown, Crosshair, Target, Shield, Activity } from 'lucide-react';
+import { Paintbrush, Check, Camera, X, Upload, Award, Coins, TrendingUp, Lock, Crown, Crosshair, Target, Shield, Activity, Zap, Brain, MessageSquare } from 'lucide-react';
 import { Player, ItemType } from '../types';
 import { api } from '../services/api';
 import {
@@ -18,6 +18,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend
 } from 'recharts';
 
 interface ProfileProps {
@@ -79,6 +80,15 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate }) => 
         setUpdating(false);
     }
   };
+
+  // Helper for Focus Area icons
+  const getFocusIcon = (title: string) => {
+      if (title.includes('Recuo') || title.includes('Aim')) return <Crosshair size={16} />;
+      if (title.includes('Flash') || title.includes('Util')) return <Zap size={16} />;
+      if (title.includes('Liderança') || title.includes('IGL')) return <Brain size={16} />;
+      if (title.includes('Comunicação')) return <MessageSquare size={16} />;
+      return <Activity size={16} />;
+  }
 
   return (
     <>
@@ -164,10 +174,10 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate }) => 
           </div>
         </div>
 
-        {/* Right Column: Premium Analytics (GC Style) & Customization */}
+        {/* Right Column: DNA Competitivo (Leetify Style) */}
         <div className="lg:col-span-2 space-y-6">
            
-           {/* PREMIUM ANALYTICS SECTION */}
+           {/* PERFORMANCE DNA SECTION */}
            <div className={`relative bg-slate-900 border rounded-2xl p-6 overflow-hidden ${isPremium ? 'border-brand-accent/30' : 'border-slate-800'}`}>
               
               {/* Header */}
@@ -177,13 +187,13 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate }) => 
                         <TrendingUp size={24} />
                      </div>
                      <div>
-                        <h3 className={`text-xl font-bold ${isPremium ? 'text-white' : 'text-slate-300'}`}>Premium Analytics</h3>
-                        <p className="text-xs text-slate-500">Performance Detalhada</p>
+                        <h3 className={`text-xl font-bold ${isPremium ? 'text-white' : 'text-slate-300'}`}>DNA Competitivo</h3>
+                        <p className="text-xs text-slate-500">Análise Cruzada: Habilidade vs. Comportamento</p>
                      </div>
                  </div>
                  {isPremium && (
                    <div className="px-3 py-1 rounded-full border border-brand-accent/30 bg-brand-accent/10 text-brand-accent text-xs font-bold flex items-center gap-1">
-                      <Crown size={12} /> ATIVO
+                      <Crown size={12} /> PRO
                    </div>
                  )}
               </div>
@@ -194,9 +204,9 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate }) => 
                    <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 border border-slate-700 shadow-xl">
                       <Lock className="text-slate-400" size={32} />
                    </div>
-                   <h3 className="text-2xl font-bold text-white mb-2">Estatísticas Bloqueadas</h3>
+                   <h3 className="text-2xl font-bold text-white mb-2">Análise Profunda Bloqueada</h3>
                    <p className="text-slate-400 max-w-md mb-6">
-                     Assinantes Premium têm acesso a gráficos detalhados de evolução, mapas de calor e análise de desempenho estilo Pro.
+                     Descubra seu verdadeiro impacto. Assinantes Premium veem como se comparam à média do rank em Mira, Utilitários e Liderança.
                    </p>
                    <button className="px-8 py-3 bg-gradient-to-r from-brand-accent to-purple-600 text-white font-bold rounded-xl shadow-lg shadow-purple-500/20 hover:scale-105 transition-transform">
                      Desbloquear Premium Agora
@@ -204,75 +214,127 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate }) => 
                 </div>
               )}
 
-              {/* ANALYTICS CONTENT (Blurred if locked) */}
+              {/* ANALYTICS CONTENT */}
               <div className={!isPremium ? 'filter blur-md pointer-events-none opacity-50' : ''}>
                  
-                 {/* Top Stats Grid */}
+                 {/* Top Stats Grid with Grading */}
                  <div className="grid grid-cols-4 gap-4 mb-8">
-                    <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
-                       <div className="text-xs text-slate-500 uppercase font-bold mb-1 flex items-center gap-1"><Crosshair size={12}/> HS%</div>
-                       <div className="text-2xl font-mono font-bold text-white">{user.advancedStats.headshotPct}%</div>
+                    <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 relative overflow-hidden group hover:border-slate-600 transition-colors">
+                       <div className="absolute right-0 top-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Crosshair size={40}/></div>
+                       <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Aim Rating</div>
+                       <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-mono font-bold text-white">{user.advancedStats.headshotPct}</span>
+                          <span className="text-xs text-slate-500">% HS</span>
+                       </div>
+                       <div className="mt-2 text-xs font-bold text-green-400 bg-green-900/20 inline-block px-1.5 rounded">Grade A</div>
                     </div>
-                    <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
-                       <div className="text-xs text-slate-500 uppercase font-bold mb-1 flex items-center gap-1"><Target size={12}/> ADR</div>
-                       <div className="text-2xl font-mono font-bold text-blue-400">{user.advancedStats.adr}</div>
+                    
+                    <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 relative overflow-hidden group hover:border-slate-600 transition-colors">
+                       <div className="absolute right-0 top-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Target size={40}/></div>
+                       <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Impact (ADR)</div>
+                       <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-mono font-bold text-blue-400">{user.advancedStats.adr}</span>
+                       </div>
+                       <div className="mt-2 text-xs font-bold text-yellow-400 bg-yellow-900/20 inline-block px-1.5 rounded">Grade B</div>
                     </div>
-                    <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
-                       <div className="text-xs text-slate-500 uppercase font-bold mb-1 flex items-center gap-1"><Shield size={12}/> KAST</div>
-                       <div className="text-2xl font-mono font-bold text-green-400">{user.advancedStats.kast}%</div>
+
+                    <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 relative overflow-hidden group hover:border-slate-600 transition-colors">
+                       <div className="absolute right-0 top-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Shield size={40}/></div>
+                       <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Utility / Supp</div>
+                       <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-mono font-bold text-purple-400">{user.advancedStats.kast}</span>
+                          <span className="text-xs text-slate-500">KAST</span>
+                       </div>
+                       <div className="mt-2 text-xs font-bold text-slate-400 bg-slate-800 inline-block px-1.5 rounded">Grade C+</div>
                     </div>
-                    <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
-                       <div className="text-xs text-slate-500 uppercase font-bold mb-1 flex items-center gap-1"><Activity size={12}/> Entry</div>
-                       <div className="text-2xl font-mono font-bold text-yellow-400">{user.advancedStats.entrySuccess}%</div>
+
+                    <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 relative overflow-hidden group hover:border-slate-600 transition-colors">
+                       <div className="absolute right-0 top-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Zap size={40}/></div>
+                       <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Opening Duels</div>
+                       <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-mono font-bold text-red-400">{user.advancedStats.entrySuccess}</span>
+                          <span className="text-xs text-slate-500">% Win</span>
+                       </div>
+                       <div className="mt-2 text-xs font-bold text-red-400 bg-red-900/20 inline-block px-1.5 rounded">Grade D</div>
                     </div>
                  </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[300px]">
-                    {/* Rating History Chart */}
-                    <div className="bg-slate-950/30 rounded-xl p-4 border border-slate-800 flex flex-col">
-                       <h4 className="text-sm font-bold text-slate-300 mb-4">Evolução de Rating</h4>
-                       <div className="flex-1 w-full min-h-0">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* The "Leetify" Radar Chart */}
+                    <div className="bg-slate-950/30 rounded-xl p-4 border border-slate-800 flex flex-col min-h-[350px]">
+                       <div className="flex justify-between items-start mb-4">
+                          <div>
+                             <h4 className="text-sm font-bold text-slate-300">Perfil Híbrido</h4>
+                             <p className="text-[10px] text-slate-500">Você vs. Média do Elo (Ouro IV)</p>
+                          </div>
+                          <div className="flex flex-col text-[10px] gap-1">
+                             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-brand-accent"></span> Você</span>
+                             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-600"></span> Média</span>
+                          </div>
+                       </div>
+                       <div className="flex-1 w-full min-h-0 relative">
                           <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={user.matchHistory}>
-                              <defs>
-                                <linearGradient id="colorRating" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
-                              <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                              <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} domain={['dataMin - 10', 'dataMax + 10']} />
-                              <Tooltip 
-                                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#fff' }}
-                                itemStyle={{ color: '#10b981' }}
-                              />
-                              <Area type="monotone" dataKey="rating" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorRating)" />
-                            </AreaChart>
+                             <RadarChart cx="50%" cy="50%" outerRadius="70%" data={user.advancedStats.radar}>
+                                <PolarGrid stroke="#334155" strokeDasharray="3 3" />
+                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} />
+                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                                {/* Rank Average Ghost */}
+                                <Radar
+                                  name="Média do Rank"
+                                  dataKey="avg"
+                                  stroke="#475569"
+                                  strokeWidth={2}
+                                  fill="#475569"
+                                  fillOpacity={0.1}
+                                />
+                                {/* User Stats */}
+                                <Radar
+                                  name={user.username}
+                                  dataKey="A"
+                                  stroke="#d946ef" // Brand Accent
+                                  strokeWidth={3}
+                                  fill="#d946ef"
+                                  fillOpacity={0.4}
+                                />
+                                <Tooltip 
+                                   contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#fff', fontSize: '12px' }}
+                                   itemStyle={{ padding: 0 }}
+                                />
+                             </RadarChart>
                           </ResponsiveContainer>
                        </div>
                     </div>
 
-                    {/* Radar Chart Playstyle */}
+                    {/* Focus Areas (AI Coach) */}
                     <div className="bg-slate-950/30 rounded-xl p-4 border border-slate-800 flex flex-col">
-                       <h4 className="text-sm font-bold text-slate-300 mb-4">Estilo de Jogo</h4>
-                       <div className="flex-1 w-full min-h-0">
-                          <ResponsiveContainer width="100%" height="100%">
-                             <RadarChart cx="50%" cy="50%" outerRadius="70%" data={user.advancedStats.radar}>
-                                <PolarGrid stroke="#334155" />
-                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10 }} />
-                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                                <Radar
-                                  name={user.username}
-                                  dataKey="A"
-                                  stroke="#8b5cf6"
-                                  strokeWidth={2}
-                                  fill="#8b5cf6"
-                                  fillOpacity={0.4}
-                                />
-                                <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#fff' }} />
-                             </RadarChart>
-                          </ResponsiveContainer>
+                       <h4 className="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
+                          <Brain size={16} className="text-brand-purple"/> Áreas de Foco
+                       </h4>
+                       <div className="space-y-3 overflow-y-auto max-h-[300px] custom-scrollbar pr-2">
+                          {user.advancedStats.focusAreas?.map((focus, idx) => (
+                             <div key={idx} className="bg-slate-900 border border-slate-800 p-3 rounded-lg hover:bg-slate-800 transition-colors">
+                                <div className="flex justify-between items-start mb-1">
+                                   <div className="flex items-center gap-2 font-bold text-sm text-slate-200">
+                                      {getFocusIcon(focus.title)}
+                                      {focus.title}
+                                   </div>
+                                   <span className={`text-sm font-black ${focus.color}`}>{focus.score}</span>
+                                </div>
+                                <p className="text-xs text-slate-400 leading-relaxed mb-2">
+                                   {focus.description}
+                                </p>
+                                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
+                                   <span className="text-slate-600">Tendência:</span>
+                                   {focus.trend === 'up' && <span className="text-green-500 flex items-center"><TrendingUp size={10} className="mr-1"/> Melhorando</span>}
+                                   {focus.trend === 'down' && <span className="text-red-500 flex items-center"><TrendingUp size={10} className="mr-1 rotate-180"/> Caindo</span>}
+                                   {focus.trend === 'stable' && <span className="text-blue-500 flex items-center">Estável</span>}
+                                </div>
+                             </div>
+                          ))}
+                          <div className="bg-brand-purple/10 border border-brand-purple/20 p-3 rounded-lg text-center mt-2">
+                             <p className="text-xs text-brand-purple font-bold">Dica do Sherpa IA</p>
+                             <p className="text-[10px] text-slate-400 mt-1">"Seu uso de utilitários está baixo. Tente comprar mais flashbangs em rounds armados."</p>
+                          </div>
                        </div>
                     </div>
                  </div>

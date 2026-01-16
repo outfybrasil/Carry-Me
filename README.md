@@ -1,20 +1,31 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# CarryMe - Plataforma de Matchmaking
 
-# Run and deploy your AI Studio app
+Este projeto é uma plataforma de matchmaking focada em comportamento e reputação.
 
-This contains everything you need to run your app locally.
+## Como Rodar Localmente
 
-View your app in AI Studio: https://ai.studio/apps/drive/1SUODHslJv1d8ikLpIoytKagifg2RzpVd
+**Pré-requisitos:** Node.js instalado.
 
-## Run Locally
+1. **Instalar dependências:**
+   ```bash
+   npm install
+   ```
 
-**Prerequisites:**  Node.js
+2. **Configurar Supabase:**
+   - Crie um projeto no [Supabase](https://supabase.com).
+   - Crie um arquivo `.env` na raiz do projeto.
+   - Adicione as chaves do seu projeto:
+     ```
+     VITE_SUPABASE_URL=sua_url_do_supabase
+     VITE_SUPABASE_ANON_KEY=sua_chave_anonima
+     ```
+   - Certifique-se de criar as tabelas necessárias no banco de dados (profiles, matches, etc).
 
+3. **Rodar o projeto:**
+   ```bash
+   npm run dev
+   ```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Dicas de Teste
+
+- **Pular Fila (Hack):** Abra o console do navegador (F12) e digite `window.startMatchHack()` para forçar o início de uma partida sem esperar o matchmaking.

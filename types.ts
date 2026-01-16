@@ -57,43 +57,54 @@ export interface MatchHistoryPoint {
   kda: number;
 }
 
+export interface RadarDataPoint {
+  subject: string;
+  A: number; // User value
+  avg: number; // Rank Average (Leetify style comparison)
+  fullMark: number;
+}
+
+export interface FocusArea {
+  title: string;
+  score: string; // "S", "A", "F"
+  trend: 'up' | 'down' | 'stable';
+  description: string;
+  color: string;
+}
+
 export interface AdvancedStats {
   headshotPct: number;
   adr: number; // Average Damage per Round
   kast: number; // Kill, Assist, Survive, Trade %
   entrySuccess: number;
   clutchSuccess: number;
-  radar: {
-    subject: string;
-    A: number; // User value
-    fullMark: number;
-  }[];
+  radar: RadarDataPoint[];
+  focusAreas: FocusArea[]; // NEW: Specific areas to improve
 }
 
 export interface Player {
   id: string;
   username: string;
   avatar: string;
-  riotId?: string; // NEW
-  steamId?: string; // NEW
+  riotId?: string; 
+  steamId?: string; 
   score: number; // -100 to 100
   badges: string[];
   isSherpa?: boolean;
   gameRole?: string;
   isPremium?: boolean;
   coins: number;
-  tutorialCompleted: boolean; // NEW: Track if user finished onboarding
-  inventory: string[]; // List of Item IDs owned
+  tutorialCompleted: boolean; 
+  inventory: string[]; 
   equipped: {
-    border?: string; // Item ID
-    nameColor?: string; // Item ID
-    banner?: string; // Item ID
+    border?: string; 
+    nameColor?: string; 
+    banner?: string; 
   };
   stats: PlayerStats;
-  // NEW: Premium Stats Data
   matchHistory: MatchHistoryPoint[];
   advancedStats: AdvancedStats;
-  claimedAchievements: string[]; // List of Achievement IDs
+  claimedAchievements: string[]; 
 }
 
 export interface Friend {
@@ -164,4 +175,12 @@ export interface LobbyConfig {
   vibe: Vibe;
   game: string;
   maxPlayers: number;
+}
+
+export interface Transaction {
+  id: string;
+  amount: number;
+  coins: number;
+  type: 'COINS' | 'PREMIUM';
+  date: string;
 }

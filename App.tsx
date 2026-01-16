@@ -18,16 +18,11 @@ import CookieConsent from './components/CookieConsent';
 import Auth from './pages/Auth';
 import LandingPage from './pages/LandingPage';
 import OnboardingTour from './components/OnboardingTour';
+import CoinCelebration from './components/CoinCelebration';
 import { Player, StoreItem, LobbyConfig, Vibe } from './types';
 import { api } from './services/api';
 import { Loader2, LogOut, AlertTriangle, RefreshCw, MessageSquare, CheckCircle } from 'lucide-react';
 import { supabase } from './lib/supabase';
-
-declare global {
-  interface Window {
-    startMatchHack: () => void;
-  }
-}
 
 // --- GLOBAL TOAST NOTIFICATION COMPONENT ---
 const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'chat' | 'error', onClose: () => void }) => {
@@ -94,6 +89,7 @@ const App: React.FC = () => {
   
   // Notification State
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'chat' | 'error'} | null>(null);
+  const [coinDiff, setCoinDiff] = useState<number | null>(null); // For CoinCelebration
 
   // Onboarding State
   const [onboardingStep, setOnboardingStep] = useState(0);
@@ -127,7 +123,7 @@ const App: React.FC = () => {
     }
   };
 
-  const playUiSound = (type: 'click' | 'notification' = 'click') => {
+  const playUiSound = (type: 'click' | 'notification' | 'coin' = 'click') => {
     if (volume === 0 || !audioContextRef.current) return;
     const ctx = audioContextRef.current;
     const osc = ctx.createOscillator();
@@ -145,6 +141,14 @@ const App: React.FC = () => {
         gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
         osc.start(now);
         osc.stop(now + 0.3);
+    } else if (type === 'coin') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.exponentialRampToValueAtTime(2000, now + 0.1);
+        gainNode.gain.setValueAtTime((volume / 100) * 0.15, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.4);
     } else {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(800, now);
@@ -194,10 +198,18 @@ const App: React.FC = () => {
     }
   }, [onboardingTasks, onboardingStep]);
 
+  // Check for pre-existing avatar (e.g. from Discord)
+  const checkAvatarTask = (profile: Player) => {
+      if (profile && !profile.avatar.includes('dicebear.com')) {
+          setOnboardingTasks(prev => ({ ...prev, avatar: true }));
+      }
+  };
+
   // AUTH INITIALIZATION & LISTENER
   useEffect(() => {
     let mounted = true;
     let currentUserRef = user; // Local ref to track user state inside closure
+    let isInitializing = false;
 
     // Safety Timeout - Force finish loading if something gets stuck
     const safetyTimeout = setTimeout(() => {
@@ -220,6 +232,7 @@ const App: React.FC = () => {
     const initialize = async () => {
       if (checkHash()) return;
 
+      isInitializing = true;
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         
@@ -233,16 +246,22 @@ const App: React.FC = () => {
           if (mounted) {
             if (profile) {
               setUser(profile);
+              checkAvatarTask(profile); // Check avatar immediately
               currentUserRef = profile; // Update local ref
               if (!profile.tutorialCompleted) setOnboardingStep(1);
             } else {
-              setProfileError(true);
+              // Se falhar ao sincronizar, desloga para evitar loop infinito
+              console.warn("Profile sync failed, signing out.");
+              await supabase.auth.signOut();
+              setUser(null);
             }
           }
         }
       } catch (e) {
         console.error("Init failed:", e);
+        await supabase.auth.signOut();
       } finally {
+        isInitializing = false;
         if (mounted) setLoading(false);
       }
     };
@@ -255,9 +274,11 @@ const App: React.FC = () => {
       if (!mounted) return;
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+         // Evita conflito se a inicialização ainda estiver rodando
+         if (isInitializing) return;
+
          if (session?.user) {
              // CRITICAL FIX: If we already have the user loaded, DO NOT re-sync.
-             // This prevents the "disappearing" bug when Supabase refreshes token 3s after load.
              if (currentUserRef && currentUserRef.id === session.user.id) {
                  return;
              }
@@ -267,10 +288,10 @@ const App: React.FC = () => {
                  const profile = await api.syncUserProfile(session.user);
                  if (profile) {
                      setUser(profile);
+                     checkAvatarTask(profile); // Check avatar on login
                      currentUserRef = profile;
                      if (!profile.tutorialCompleted) setOnboardingStep(1);
                  } else {
-                     // Only error if we really can't get the profile after a valid sign in
                      console.warn("Could not sync profile on state change");
                  }
              } catch(e) {
@@ -297,12 +318,12 @@ const App: React.FC = () => {
     };
   }, []); // Empty dependency array to run once
 
-  // --- REALTIME CHAT LISTENER ---
+  // --- REALTIME CHAT & PROFILE LISTENER ---
   useEffect(() => {
     if (!user) return;
 
-    // Create a listener for new messages where receiver_id is the current user
-    const channel = supabase.channel('global_notifications')
+    // Direct Messages Listener
+    const chatChannel = supabase.channel('global_notifications')
         .on(
             'postgres_changes',
             { 
@@ -312,10 +333,7 @@ const App: React.FC = () => {
                 filter: `receiver_id=eq.${user.id}`
             }, 
             (payload) => {
-                // Play notification sound
                 playUiSound('notification');
-                
-                // Show visual toast
                 setToast({
                     msg: "Você recebeu uma nova mensagem!",
                     type: 'chat'
@@ -324,13 +342,42 @@ const App: React.FC = () => {
         )
         .subscribe();
 
+    // Profile Coins Listener (For Payment Celebration)
+    const profileChannel = supabase.channel('profile_updates')
+        .on(
+            'postgres_changes',
+            {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'profiles',
+                filter: `id=eq.${user.id}`
+            },
+            (payload) => {
+                const newProfile = payload.new as any;
+                const oldProfile = payload.old as any;
+                
+                // Sync local user state
+                setUser(prev => prev ? ({...prev, ...newProfile}) : null);
+
+                // Detect Coin Increase
+                if (newProfile.coins > oldProfile.coins) {
+                    const diff = newProfile.coins - oldProfile.coins;
+                    setCoinDiff(diff);
+                    playUiSound('coin');
+                }
+            }
+        )
+        .subscribe();
+
     return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(chatChannel);
+        supabase.removeChannel(profileChannel);
     };
-  }, [user]); // Re-subscribe only if user changes (login/logout)
+  }, [user]);
 
   const handleLoginSuccess = (loggedInUser: Player) => {
     setUser(loggedInUser);
+    checkAvatarTask(loggedInUser);
     setShowAuth(false);
     setRecoveryMode(false);
     setProfileError(false);
@@ -352,7 +399,10 @@ const App: React.FC = () => {
   const refreshUser = async () => {
     if (!user) return;
     const updated = await api.checkSession();
-    if (updated) setUser(updated);
+    if (updated) {
+        setUser(updated);
+        checkAvatarTask(updated);
+    }
   };
 
   const handleVoteComplete = () => {
@@ -365,16 +415,10 @@ const App: React.FC = () => {
     setIsPaymentOpen(true);
   };
 
+  // Payment Success is now handled via Realtime Listener in PaymentModal and App.tsx
+  // This just closes the UI after animation
   const handlePaymentSuccess = async () => {
-    if (!user) return;
-    try {
-      if (paymentType === 'PREMIUM') await api.setPremium(user.id);
-      else if (paymentType === 'COINS') await api.purchaseCoins(user.id, 1000);
-      await refreshUser();
       setIsPaymentOpen(false);
-    } catch (error) {
-      console.error(error);
-    }
   };
 
   const handleEnterLobby = (asHost: boolean, config?: LobbyConfig) => {
@@ -387,14 +431,10 @@ const App: React.FC = () => {
 
   const handleStartGame = () => setCurrentPage('active-match');
 
-  useEffect(() => {
-    window.startMatchHack = handleStartGame;
-  }, []);
-
   const handleFinishMatch = async () => {
     if (user) {
       await api.purchaseCoins(user.id, 100);
-      await refreshUser();
+      // Removed manual refreshUser() here because Realtime listener will catch the coin update
     }
     setCurrentPage('dashboard');
     setShowVotingOverride(true);
@@ -404,7 +444,7 @@ const App: React.FC = () => {
     if (!user) return;
     try {
       const success = await api.purchaseItem(user.id, item.id, item.price);
-      if (success) await refreshUser();
+      if (success) await refreshUser(); // Realtime might not catch inventory table, so explicit refresh is okay
       else alert("Saldo insuficiente!");
     } catch (e) {
       alert("Erro ao processar compra.");
@@ -427,7 +467,7 @@ const App: React.FC = () => {
     } else if (onboardingStep === 3) {
         if(user) {
             await api.completeTutorial(user.id);
-            await refreshUser();
+            // Realtime will catch the 500 coin reward
         }
         setOnboardingStep(0); 
     }
@@ -453,7 +493,7 @@ const App: React.FC = () => {
     );
   }
 
-  // --- ERROR STATE UI (Stops infinite loop) ---
+  // --- ERROR STATE UI ---
   if (profileError) {
       return (
          <div className="min-h-screen bg-brand-dark flex flex-col items-center justify-center p-6 text-center">
@@ -556,6 +596,14 @@ const App: React.FC = () => {
     <>
       <CookieConsent />
       
+      {/* COIN CELEBRATION EFFECT */}
+      {coinDiff && (
+          <CoinCelebration 
+              amount={coinDiff} 
+              onComplete={() => setCoinDiff(null)} 
+          />
+      )}
+      
       {/* RENDER GLOBAL TOAST */}
       {toast && (
           <Toast 
@@ -575,7 +623,14 @@ const App: React.FC = () => {
       
       {!hasAcceptedManifesto && !onboardingStep && <ManifestoModal onAccept={() => setHasAcceptedManifesto(true)} />}
       
-      <PaymentModal isOpen={isPaymentOpen} onClose={() => setIsPaymentOpen(false)} onSuccess={handlePaymentSuccess} itemTitle={paymentType === 'PREMIUM' ? 'CarryMe Premium' : '1000 CarryCoins'} price={paymentType === 'PREMIUM' ? 19.90 : 25.00} />
+      <PaymentModal 
+          isOpen={isPaymentOpen} 
+          onClose={() => setIsPaymentOpen(false)} 
+          onSuccess={handlePaymentSuccess} 
+          itemTitle={paymentType === 'PREMIUM' ? 'CarryMe Premium' : '1000 CarryCoins'} 
+          price={paymentType === 'PREMIUM' ? 19.90 : 25.00} 
+          type={paymentType || undefined}
+      />
       
       {(currentPage === 'terms' || currentPage === 'privacy') ? (
          <div className="min-h-screen bg-[#020202]">

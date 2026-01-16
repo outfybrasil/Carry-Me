@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, CreditCard, Lock, CheckCircle, Loader2, ExternalLink, Wallet, QrCode } from 'lucide-react';
+import { X, Lock, CheckCircle, Loader2, ExternalLink, ShieldCheck, Coins } from 'lucide-react';
 import { api } from '../services/api';
+import { supabase } from '../lib/supabase';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -8,253 +9,223 @@ interface PaymentModalProps {
   onSuccess: () => void;
   itemTitle: string;
   price: number;
+  type?: 'PREMIUM' | 'COINS';
 }
 
-const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess, itemTitle, price }) => {
-  const [method, setMethod] = useState<'CARD' | 'PIX' | 'MERCADO_PAGO'>('MERCADO_PAGO');
-  const [step, setStep] = useState<'form' | 'processing' | 'redirecting' | 'success'>('form');
-  
-  // Card State (Simulation)
-  const [cardNum, setCardNum] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvc, setCvc] = useState('');
-  const [cardName, setCardName] = useState('');
+const COIN_PACKS = [
+  { coins: 100, price: 4.90, label: 'Punhado de Moedas' },
+  { coins: 500, price: 14.90, label: 'Bolsa de Moedas', popular: true },
+  { coins: 1000, price: 25.00, label: 'Baú de Moedas', bestValue: true },
+  { coins: 2500, price: 55.00, label: 'Cofre de Moedas' },
+];
+
+const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess, itemTitle, price, type }) => {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'redirecting' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [selectedPack, setSelectedPack] = useState<{coins: number, price: number, label: string} | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      setStep('form');
-      setMethod('MERCADO_PAGO'); // Default to MP as it is the real integration
-      setCardNum('');
-      setExpiry('');
-      setCvc('');
-      setCardName('');
+      setStatus('idle');
+      setErrorMessage('');
+      
+      // Se for compra de moedas, seleciona o pacote padrão (1000) ou reseta
+      if (type === 'COINS') {
+          const defaultPack = COIN_PACKS.find(p => p.coins === 1000);
+          setSelectedPack(defaultPack || COIN_PACKS[2]);
+      }
     }
   }, [isOpen]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStep('processing');
-    
-    if (method === 'MERCADO_PAGO') {
-      // 1. Get the preference link from backend
-      const checkoutUrl = await api.createMercadoPagoPreference(itemTitle, price);
+  // --- LISTEN FOR PAYMENT SUCCESS (Realtime) ---
+  useEffect(() => {
+      if (!isOpen) return;
+
+      const checkUser = async () => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if(!user) return;
+
+          const channel = supabase.channel('payment_listener')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${user.id}`
+                },
+                (payload) => {
+                    const newProfile = payload.new as any;
+                    const oldProfile = payload.old as any;
+                    
+                    if (newProfile.coins > oldProfile.coins || (newProfile.is_premium && !oldProfile.is_premium)) {
+                        setStatus('success');
+                        setTimeout(() => {
+                            onSuccess(); 
+                        }, 2000);
+                    }
+                }
+            )
+            .subscribe();
+
+          return () => {
+              supabase.removeChannel(channel);
+          };
+      };
       
-      if (checkoutUrl) {
-        setStep('redirecting');
-        // 2. Redirect user to Mercado Pago securely
-        setTimeout(() => {
-          window.location.href = checkoutUrl;
-        }, 1500); // Small delay to show the "Redirecting" UI
-        return; 
-      } else {
-        // Fallback if backend is not set up (Demo Mode)
-        console.warn("Backend function missing or failed. Running in DEMO mode.");
-        setTimeout(() => {
-          setStep('success');
-          setTimeout(onSuccess, 1500);
-        }, 2000);
-      }
-    } else {
-      // Legacy/Demo Simulation for direct card input
-      await api.processPaymentSimulation(price, method === 'CARD' ? 'CREDIT_CARD' : 'PIX');
-      setStep('success');
+      checkUser();
+  }, [isOpen, onSuccess]);
+
+
+  const handleMercadoPagoCheckout = async () => {
+    setStatus('loading');
+    setErrorMessage('');
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if(!user) return;
+
+    const finalTitle = type === 'COINS' && selectedPack ? `${selectedPack.coins} CarryCoins` : itemTitle;
+    const finalPrice = type === 'COINS' && selectedPack ? selectedPack.price : price;
+
+    // Call Backend
+    const checkoutUrl = await api.createMercadoPagoPreference(user.id, finalTitle, finalPrice);
+    
+    if (checkoutUrl) {
+      setStatus('redirecting');
+      // Small delay for UX
       setTimeout(() => {
-        onSuccess();
-      }, 1500);
+        window.location.href = checkoutUrl;
+      }, 1000);
+    } else {
+      setStatus('error');
+      setErrorMessage("Não foi possível conectar ao Mercado Pago. Verifique se o Access Token está configurado corretamente na Edge Function.");
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden relative animate-in fade-in zoom-in duration-200">
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white z-10">
-          <X size={20} />
+    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-[#0f172a] border border-slate-800 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden relative">
+        
+        {/* Close Button */}
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white z-20 transition-colors">
+          <X size={24} />
         </button>
 
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6 text-white">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Lock size={20} /> Checkout Seguro
-          </h2>
-          <div className="mt-4 flex justify-between items-end border-t border-blue-400/30 pt-4">
-            <div>
-              <p className="text-xs uppercase opacity-70">Item</p>
-              <p className="font-bold text-lg leading-tight">{itemTitle}</p>
+        {/* Header Image / Gradient */}
+        <div className="h-32 bg-gradient-to-br from-blue-600 to-purple-700 relative overflow-hidden flex items-center justify-center">
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0f172a] to-transparent"></div>
+            
+            <div className="relative z-10 text-center transform translate-y-2">
+                <div className="w-16 h-16 bg-white rounded-2xl shadow-xl mx-auto flex items-center justify-center mb-2 rotate-3">
+                    <img src="https://img.icons8.com/color/96/mercado-pago.png" alt="MP" className="w-10 h-10" />
+                </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs uppercase opacity-70">Total</p>
-              <div className="text-2xl font-bold">R$ {price.toFixed(2).replace('.', ',')}</div>
-            </div>
-          </div>
         </div>
 
-        {/* Method Selection */}
-        {step === 'form' && (
-          <div className="flex border-b border-slate-800">
-            <button 
-              onClick={() => setMethod('MERCADO_PAGO')}
-              className={`flex-1 py-4 font-bold text-sm transition-colors flex items-center justify-center gap-2 ${method === 'MERCADO_PAGO' ? 'text-blue-400 border-b-2 border-blue-400 bg-blue-400/5' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              <span className="flex items-center gap-1"><QrCode size={16}/> Pix</span> / <span className="flex items-center gap-1"><Wallet size={16}/> MP</span>
-            </button>
-            <button 
-              onClick={() => setMethod('CARD')}
-              className={`flex-1 py-4 font-bold text-sm transition-colors flex items-center justify-center gap-2 ${method === 'CARD' ? 'text-slate-200 border-b-2 border-slate-600 bg-slate-800/50' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              <CreditCard size={18} /> Simulação
-            </button>
-          </div>
-        )}
+        <div className="px-8 pb-8 pt-4 text-center">
+            <h2 className="text-2xl font-bold text-white mb-1">{type === 'COINS' && selectedPack ? `${selectedPack.coins} CarryCoins` : itemTitle}</h2>
+            <p className="text-slate-400 text-sm mb-6">Finalize sua compra com segurança.</p>
 
-        <div className="p-6">
-          {/* OPTION 1: MERCADO PAGO (REAL) */}
-          {step === 'form' && method === 'MERCADO_PAGO' && (
-             <div className="text-center py-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                <div className="bg-[#009EE3]/10 p-6 rounded-2xl border border-[#009EE3]/30 mb-6 relative overflow-hidden group">
-                   <div className="absolute -right-4 -top-4 text-[#009EE3]/10 group-hover:text-[#009EE3]/20 transition-colors">
-                      <QrCode size={120} />
-                   </div>
-                   
-                   <div className="flex justify-center mb-4 relative z-10">
-                      <div className="w-20 h-12 bg-[#009EE3] rounded-lg flex items-center justify-center text-white font-bold italic shadow-lg">
-                         MP
-                      </div>
-                   </div>
-                   <h3 className="text-white font-bold text-lg mb-2 relative z-10">Mercado Pago</h3>
-                   <p className="text-sm text-slate-400 relative z-10">
-                     Pague instantaneamente com <strong>Pix</strong> ou use seu cartão de crédito/débito com segurança total.
-                   </p>
+            <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800 mb-8 flex justify-between items-center">
+                <div className="text-left">
+                    <p className="text-xs text-slate-500 uppercase font-bold">Total a Pagar</p>
+                    <p className="text-2xl font-mono font-bold text-white">R$ {(type === 'COINS' && selectedPack ? selectedPack.price : price).toFixed(2).replace('.', ',')}</p>
                 </div>
-
-                <button 
-                  onClick={handleSubmit} 
-                  className="w-full py-4 bg-[#009EE3] hover:bg-[#008CC9] text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 group transform hover:scale-[1.02]"
-                >
-                  Ir para Pagamento <ExternalLink size={18} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-                <div className="flex items-center justify-center gap-2 mt-4 opacity-50">
-                   <div className="h-4 w-8 bg-slate-700 rounded"></div>
-                   <div className="h-4 w-8 bg-slate-700 rounded"></div>
-                   <div className="h-4 w-8 bg-slate-700 rounded"></div>
-                   <span className="text-xs text-slate-500">+ Pix</span>
+                <div className="bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
+                    <span className="text-xs font-bold text-green-400 flex items-center gap-1">
+                        <ShieldCheck size={12} /> Seguro
+                    </span>
                 </div>
-             </div>
-          )}
-
-          {/* OPTION 2: CARD (DEMO) */}
-          {step === 'form' && method === 'CARD' && (
-            <form onSubmit={handleSubmit} className="space-y-4">
-               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Nome no Cartão</label>
-                <input 
-                  type="text" 
-                  placeholder="COMO NO CARTAO"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2.5 px-4 text-white focus:border-blue-500 focus:outline-none uppercase"
-                  value={cardName}
-                  onChange={(e) => setCardName(e.target.value.toUpperCase())}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Número do Cartão</label>
-                <div className="relative">
-                  <CreditCard className="absolute top-3 left-3 text-slate-500" size={18} />
-                  <input 
-                    type="text" 
-                    placeholder="0000 0000 0000 0000"
-                    maxLength={19}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2.5 pl-10 pr-4 text-white focus:border-blue-500 focus:outline-none font-mono"
-                    value={cardNum}
-                    onChange={(e) => {
-                      const v = e.target.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
-                      setCardNum(v);
-                    }}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Validade</label>
-                  <input 
-                    type="text" 
-                    placeholder="MM/AA"
-                    maxLength={5}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2.5 px-4 text-white focus:border-blue-500 focus:outline-none font-mono"
-                    value={expiry}
-                    onChange={(e) => {
-                       let v = e.target.value.replace(/\D/g, '');
-                       if (v.length >= 2) v = v.slice(0,2) + '/' + v.slice(2,4);
-                       setExpiry(v);
-                    }}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">CVC</label>
-                  <div className="relative">
-                    <Lock className="absolute top-3 left-3 text-slate-500" size={14} />
-                    <input 
-                      type="text" 
-                      placeholder="123"
-                      maxLength={4}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2.5 pl-9 pr-4 text-white focus:border-blue-500 focus:outline-none font-mono"
-                      value={cvc}
-                      onChange={(e) => setCvc(e.target.value.replace(/\D/g, ''))}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <button type="submit" className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2">
-                  <Lock size={16} /> Simular Pagamento
-                </button>
-              </div>
-            </form>
-          )}
-
-          {step === 'processing' && (
-            <div className="py-12 flex flex-col items-center text-center">
-              <div className="relative">
-                <div className="absolute inset-0 bg-[#009EE3] blur-xl opacity-20 rounded-full"></div>
-                <Loader2 className="w-16 h-16 text-[#009EE3] animate-spin mb-4 relative z-10" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-1">
-                 Conectando ao Gateway...
-              </h3>
-              <p className="text-slate-400">Gerando seu link de pagamento seguro.</p>
             </div>
-          )}
 
-          {step === 'redirecting' && (
-            <div className="py-12 flex flex-col items-center text-center">
-              <div className="relative">
-                 <div className="w-16 h-16 bg-[#009EE3] rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30 animate-pulse">
-                    <ExternalLink className="text-white" size={32} />
-                 </div>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-1">
-                 Redirecionando...
-              </h3>
-              <p className="text-slate-400">Você será levado ao ambiente seguro do Mercado Pago.</p>
-            </div>
-          )}
+            {/* COIN SELECTION GRID */}
+            {type === 'COINS' && status === 'idle' && (
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                    {COIN_PACKS.map(pack => (
+                        <button
+                            key={pack.coins}
+                            onClick={() => setSelectedPack(pack)}
+                            className={`p-3 rounded-xl border text-left transition-all relative ${selectedPack?.coins === pack.coins ? 'bg-blue-600/20 border-blue-500 ring-1 ring-blue-500' : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'}`}
+                        >
+                            {pack.popular && <span className="absolute -top-2 -right-2 bg-yellow-500 text-black text-[9px] font-bold px-2 py-0.5 rounded-full">POPULAR</span>}
+                            {pack.bestValue && <span className="absolute -top-2 -right-2 bg-green-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">MELHOR</span>}
+                            
+                            <div className="flex items-center gap-2 mb-1">
+                                <Coins size={14} className="text-yellow-500" />
+                                <span className="font-bold text-white text-sm">{pack.coins}</span>
+                            </div>
+                            <div className="text-xs text-slate-400">R$ {pack.price.toFixed(2).replace('.', ',')}</div>
+                        </button>
+                    ))}
+                </div>
+            )}
 
-          {step === 'success' && (
-            <div className="py-12 flex flex-col items-center text-center animate-in zoom-in duration-300">
-              <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-green-500/30 ring-4 ring-green-500/20">
-                <CheckCircle className="w-10 h-10 text-white" />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Sucesso (Simulação)</h3>
-              <p className="text-slate-400">Seus itens já foram adicionados à sua conta.</p>
-            </div>
-          )}
+            {status === 'idle' && (
+                <div className="space-y-3">
+                    <button 
+                        onClick={handleMercadoPagoCheckout}
+                        className="w-full py-4 bg-[#009EE3] hover:bg-[#008CC9] text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-3 group relative overflow-hidden"
+                    >
+                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                        <span className="relative z-10 flex items-center gap-2">
+                            Pagar com Mercado Pago <ExternalLink size={18} />
+                        </span>
+                    </button>
+                    <p className="text-[10px] text-slate-500">
+                        Aceitamos Pix, Cartão de Crédito e Débito.
+                    </p>
+                </div>
+            )}
+
+            {status === 'loading' && (
+                <div className="py-4">
+                    <Loader2 className="w-10 h-10 text-blue-500 animate-spin mx-auto mb-3" />
+                    <p className="text-slate-300 font-medium">Gerando link de pagamento...</p>
+                </div>
+            )}
+
+            {status === 'redirecting' && (
+                <div className="py-4">
+                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-3 animate-ping">
+                        <ExternalLink className="text-white" size={20} />
+                    </div>
+                    <p className="text-slate-300 font-medium">Redirecionando para o Mercado Pago...</p>
+                </div>
+            )}
+
+            {status === 'success' && (
+                <div className="py-4 animate-in zoom-in">
+                    <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/30">
+                        <CheckCircle className="w-8 h-8 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-1">Pagamento Confirmado!</h3>
+                    <p className="text-slate-400 text-sm">Suas moedas foram adicionadas.</p>
+                </div>
+            )}
+
+            {status === 'error' && (
+                <div className="py-4 animate-in shake">
+                    <div className="text-red-400 bg-red-400/10 p-4 rounded-xl border border-red-400/20 text-sm mb-4">
+                        {errorMessage}
+                    </div>
+                    <button 
+                        onClick={() => setStatus('idle')}
+                        className="text-slate-400 hover:text-white text-sm underline"
+                    >
+                        Tentar Novamente
+                    </button>
+                </div>
+            )}
+        </div>
+        
+        {/* Footer Trust Badges */}
+        <div className="bg-slate-950 p-4 border-t border-slate-800 flex justify-center gap-4 opacity-50 grayscale hover:grayscale-0 transition-all">
+            <img src="https://img.icons8.com/color/48/pix.png" className="h-6" alt="Pix" />
+            <img src="https://img.icons8.com/color/48/mastercard.png" className="h-6" alt="Mastercard" />
+            <img src="https://img.icons8.com/color/48/visa.png" className="h-6" alt="Visa" />
         </div>
       </div>
     </div>

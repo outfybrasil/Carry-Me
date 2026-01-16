@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Player, LobbyPlayer, ChatMessage, LobbyConfig } from '../types';
-import { Send, User, Crown, Mic, Clock, MessageSquare, Play, LogOut, CheckCircle, Copy, Wifi, Users } from 'lucide-react';
+import { Send, User, Crown, Mic, Clock, MessageSquare, Play, LogOut, CheckCircle, Copy, Wifi, Users, Zap } from 'lucide-react';
 import { api } from '../services/api';
+import { supabase } from '../lib/supabase';
 
 interface LobbyRoomProps {
   user: Player;
@@ -38,7 +39,7 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
   const chatEndRef = useRef<HTMLDivElement>(null);
   
   // Use a simulated Lobby ID based on the config title to group messages roughly
-  // In a full app, this would be passed via props or URL params
+  // In a full app, this would be passed via props or URL params from the Matchmaking Logic
   const lobbyId = "lobby_demo_" + (config.game || "general").replace(/\s/g, '_').toLowerCase();
   
   const maxPlayers = config.maxPlayers || 5;
@@ -51,40 +52,81 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
     }
   }, [chat, mobileTab]);
 
-  // REAL Polling for Chat Messages
+  // --- SUPABASE REALTIME SUBSCRIPTION ---
   useEffect(() => {
     setIsConnected(true);
     
-    // Initial fetch
+    // 1. Initial fetch of history
     const fetchMessages = async () => {
         const msgs = await api.getLobbyMessages(lobbyId);
         if(msgs.length > 0) setChat(msgs);
     };
     fetchMessages();
 
-    // Poll every 3 seconds
-    const interval = setInterval(fetchMessages, 3000);
-    return () => clearInterval(interval);
+    // 2. Subscribe to NEW messages (INSERT events)
+    const channel = supabase.channel(`lobby:${lobbyId}`)
+        .on(
+            'postgres_changes',
+            {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'lobby_messages',
+                filter: `lobby_id=eq.${lobbyId}`
+            },
+            (payload) => {
+                const newMsg = payload.new;
+                // Avoid duplicating if we optimistically added it (check by timestamp approx or ID if possible)
+                // ideally backend returns the real ID. For demo, we just append if sender is not me (or handle duplication logic)
+                
+                // Transform DB shape to App shape
+                const formattedMsg: ChatMessage = {
+                    id: newMsg.id,
+                    senderId: newMsg.user_id,
+                    senderName: newMsg.username,
+                    text: newMsg.text,
+                    timestamp: new Date(newMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+
+                // Only add if we don't have it (simple dedup based on timestamp/content risk, ideally use ID)
+                setChat(prev => {
+                    // Check if we already have a temp message from ourselves with same content recently?
+                    // For simplicity in this demo, we assume the optimistic update is replaced or we just allow the double render briefly
+                    // Better approach: Filter out optimistic messages when real one arrives
+                    const filtered = prev.filter(m => !m.id.startsWith('temp_') || m.text !== formattedMsg.text);
+                    return [...filtered, formattedMsg];
+                });
+            }
+        )
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('Connected to Realtime Lobby Chat');
+            }
+        });
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
   }, [lobbyId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
-    // Optimistic Update
-    const newMsg: ChatMessage = {
+    const textToSend = inputText;
+    setInputText(''); // Clear immediately for UX
+
+    // Optimistic Update (Immediate Feedback)
+    const tempMsg: ChatMessage = {
       id: 'temp_' + Date.now(),
       senderId: user.id,
       senderName: user.username,
-      text: inputText,
+      text: textToSend,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
-    setChat(prev => [...prev, newMsg]);
+    setChat(prev => [...prev, tempMsg]);
     
-    // Send to DB
-    await api.sendLobbyMessage(lobbyId, user, inputText);
-    
-    setInputText('');
+    // Send to DB (Realtime subscription will pick this up and replace the temp one)
+    await api.sendLobbyMessage(lobbyId, user, textToSend);
   };
 
   const toggleReady = () => {
@@ -218,7 +260,7 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
         </h3>
         <div className="flex items-center gap-2 text-xs">
           <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
-          <span className={isConnected ? 'text-green-500' : 'text-slate-500'}>{isConnected ? 'Online' : '...'}</span>
+          <span className={isConnected ? 'text-green-500' : 'text-slate-500'}>{isConnected ? 'Realtime' : 'Conectando...'}</span>
         </div>
       </div>
 
@@ -227,15 +269,16 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
             <div className="text-center text-slate-600 mt-10 text-sm">
                 <Wifi size={24} className="mx-auto mb-2 opacity-20" />
                 <p>Inicie a conversa...</p>
+                <p className="text-xs text-slate-700 mt-1">Conectado via Supabase Realtime</p>
             </div>
         )}
         {chat.map((msg) => (
-          <div key={msg.id} className={`flex flex-col ${msg.isSystem ? 'items-center' : msg.senderId === user.id ? 'items-end' : 'items-start'}`}>
+          <div key={msg.id} className={`flex flex-col ${msg.isSystem ? 'items-center' : msg.senderId === user.id ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-2 duration-300`}>
             {msg.isSystem ? (
               <span className="text-[10px] text-slate-500 my-2 px-2 py-1 bg-slate-800/50 rounded-full border border-slate-800">{msg.text}</span>
             ) : (
               <>
-                <div className={`max-w-[85%] px-3 py-2 rounded-xl text-sm ${
+                <div className={`max-w-[85%] px-3 py-2 rounded-xl text-sm shadow-sm ${
                   msg.senderId === user.id 
                     ? 'bg-blue-600 text-white rounded-tr-none' 
                     : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700'
@@ -256,7 +299,7 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
       <form onSubmit={handleSendMessage} className="p-2 md:p-3 bg-slate-900 border-t border-slate-800 flex gap-2">
         <input 
           type="text" 
-          placeholder={isConnected ? "Mensagem..." : "..."}
+          placeholder={isConnected ? "Mensagem..." : "Conectando..."}
           disabled={!isConnected}
           className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm disabled:opacity-50"
           value={inputText}
@@ -289,7 +332,7 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, onStartGame
             className={`flex-1 py-2 text-sm font-bold rounded-lg flex items-center justify-center gap-2 transition-all ${mobileTab === 'chat' ? 'bg-slate-800 text-white shadow' : 'text-slate-500'}`}
           >
              <MessageSquare size={16} /> Chat
-             {chat.length > 0 && <span className="bg-blue-600 text-[10px] px-1.5 rounded-full ml-1">{chat.length}</span>}
+             {chat.length > 0 && <span className="bg-blue-600 text-[10px] px-1.5 rounded-full ml-1 animate-pulse">{chat.length}</span>}
           </button>
       </div>
 

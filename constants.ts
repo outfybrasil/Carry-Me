@@ -1,4 +1,3 @@
-
 import { Player, Tag, TagType, Match, Vibe, SherpaProfile, StoreItem, ItemType, Achievement, AppNotification } from './types';
 
 // CURRENT_USER is just a fallback type shape, actual user comes from Auth
@@ -28,7 +27,8 @@ export const CURRENT_USER: Player = {
     kast: 0,
     entrySuccess: 0,
     clutchSuccess: 0,
-    radar: []
+    radar: [],
+    focusAreas: []
   },
   claimedAchievements: []
 };

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Vibe, LobbyConfig } from '../types';
 import { Loader2, Mic, Crown, Lock, Settings, Users, Search, ArrowLeft, XCircle, RefreshCw, Radar, Signal, Globe } from 'lucide-react';
 import { api } from '../services/api';
+import { supabase } from '../lib/supabase';
 
 interface MatchLobbyProps {
   onCancel: () => void;
@@ -82,60 +83,69 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
       osc.stop(ctx.currentTime + 0.5);
   }
 
-  // Timer & Queue Simulation
+  // Timer & Queue Logic
   useEffect(() => {
     let interval: any;
+    let queueSubscription: any;
+
     if (searchStatus === 'searching' || searchStatus === 'expanding') {
+      
+      // Timer interval
       interval = setInterval(() => {
         setTimer(t => t + 1);
         
-        // Small fluctuation around real number to show activity
-        setPlayersInQueue(prev => {
-            const change = Math.random() > 0.5 ? 1 : -1;
-            // Ensure we don't drop below 1 or plausible number
-            return Math.max(1, prev + change);
-        });
+        // Attempt match creation if acting as "host" (Client-side load balancing)
+        if (timer > 5 && timer % 5 === 0) {
+            const gameName = GAMES.find(g => g.id === selectedGame)?.name || '';
+            api.attemptMatchmaking(gameName, selectedVibe);
+        }
+
+        // Fetch real queue size
+        api.getQueueStats().then(count => setPlayersInQueue(count));
         
         // Visual ping effect
         if (timer % 2 === 0) playPing();
 
       }, 1000);
+
+      // --- REALTIME MATCH LISTENER ---
+      const setupListener = async () => {
+          const user = await api.checkSession();
+          if(user) {
+              // Listen for match creation where I am a participant
+              queueSubscription = api.subscribeToMatchFound(user.id, (matchId) => {
+                  setSearchStatus('found');
+                  playSuccess();
+                  // Vibrate device if mobile
+                  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+              });
+          }
+      };
+      setupListener();
+
     } else {
       setTimer(0);
     }
-    return () => clearInterval(interval);
-  }, [searchStatus, timer]);
 
-  // Robust Search Logic
+    return () => {
+        clearInterval(interval);
+        if(queueSubscription) queueSubscription();
+    };
+  }, [searchStatus, selectedGame, selectedVibe]);
+
+  // Robust Search Logic (Fallback)
   useEffect(() => {
     if (searchStatus === 'searching') {
-      // Set initial random estimated time (between 15s and 40s)
+      // Set initial random estimated time
       const est = Math.floor(Math.random() * 25) + 15;
       setEstimatedTime(est);
       
-      // FETCH REAL NUMBERS FROM API
-      api.getQueueStats().then(count => {
-         // Set the base queue number to real DB count
-         setPlayersInQueue(count);
-      });
-
-      // Stage 1: Initial Search (0-8s)
-      // Stage 2: Expanding Search (8s+)
-      // Stage 3: Found (Randomly between 10s and Estimated Time)
-      
       const expandTimeout = setTimeout(() => {
           if(searchStatus === 'searching') setSearchStatus('expanding');
-      }, 8000);
-
-      const foundDelay = Math.floor(Math.random() * 10000) + 5000; // 5s to 15s delay
-      const foundTimeout = setTimeout(() => {
-          setSearchStatus('found');
-          playSuccess();
-      }, foundDelay);
+      }, 15000); // 15s before expanding search parameters
 
       return () => {
           clearTimeout(expandTimeout);
-          clearTimeout(foundTimeout);
       };
     }
   }, [searchStatus]);
@@ -163,11 +173,33 @@ const MatchLobby: React.FC<MatchLobbyProps> = ({ onCancel, isPremium, onUpgrade,
     }));
   };
 
-  const startSearch = () => {
-      setSearchStatus('searching');
+  const startSearch = async () => {
+      const user = await api.checkSession();
+      if(!user) return;
+
+      const gameName = GAMES.find(g => g.id === selectedGame)?.name || '';
+      
+      // 1. Join DB Queue
+      const success = await api.joinQueue(user.id, gameName, selectedVibe);
+      
+      if(success) {
+          setSearchStatus('searching');
+      } else {
+          // If DB is missing, run simulation for demo purposes
+          setSearchStatus('searching');
+          // Simulate a match found after 8 seconds
+          setTimeout(() => {
+              setSearchStatus('found');
+              playSuccess();
+          }, 8000);
+      }
   };
 
-  const cancelSearch = () => {
+  const cancelSearch = async () => {
+      const user = await api.checkSession();
+      if(user) {
+          await api.leaveQueue(user.id);
+      }
       setSearchStatus('idle');
   };
 
