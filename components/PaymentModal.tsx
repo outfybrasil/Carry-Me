@@ -23,11 +23,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
   const [status, setStatus] = useState<'idle' | 'loading' | 'redirecting' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [selectedPack, setSelectedPack] = useState<{coins: number, price: number, label: string} | null>(null);
+  const [paymentUrl, setPaymentUrl] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setStatus('idle');
       setErrorMessage('');
+      setPaymentUrl('');
       
       // Se for compra de moedas, seleciona o pacote padrão (1000) ou reseta
       if (type === 'COINS') {
@@ -91,11 +93,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
     const checkoutUrl = await api.createMercadoPagoPreference(user.id, finalTitle, finalPrice);
     
     if (checkoutUrl) {
+      setPaymentUrl(checkoutUrl);
       setStatus('redirecting');
-      // Small delay for UX
-      setTimeout(() => {
-        window.location.href = checkoutUrl;
-      }, 1000);
+      window.open(checkoutUrl, '_blank');
     } else {
       setStatus('error');
       setErrorMessage("Não foi possível conectar ao Mercado Pago. Verifique se o Access Token está configurado corretamente na Edge Function.");
@@ -192,7 +192,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
                     <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-3 animate-ping">
                         <ExternalLink className="text-white" size={20} />
                     </div>
-                    <p className="text-slate-300 font-medium">Redirecionando para o Mercado Pago...</p>
+                    <p className="text-slate-300 font-medium">Pagamento aberto em nova aba...</p>
+                    <p className="text-xs text-slate-500 mt-2 mb-2">Aguardando confirmação automática.</p>
+                    {paymentUrl && (
+                        <a href={paymentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 text-xs hover:text-blue-300 underline">
+                            Clique aqui se a janela não abriu
+                        </a>
+                    )}
                 </div>
             )}
 
