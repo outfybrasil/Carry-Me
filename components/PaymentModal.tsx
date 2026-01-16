@@ -26,6 +26,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
   const [paymentUrl, setPaymentUrl] = useState('');
   const [pixData, setPixData] = useState<{qr_code: string, qr_code_base64: string} | null>(null);
   const [copiedPix, setCopiedPix] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -33,6 +34,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
       setErrorMessage('');
       setPaymentUrl('');
       setPixData(null);
+      setIsChecking(false);
       
       // Se for compra de moedas, seleciona o pacote padrão (1000) ou reseta
       if (type === 'COINS') {
@@ -81,6 +83,52 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
       checkUser();
   }, [isOpen, onSuccess]);
 
+  // --- POLLING FALLBACK (Verificação Automática) ---
+  useEffect(() => {
+      if ((status !== 'pix_display' && status !== 'redirecting') || !isOpen) return;
+
+      const checkPayment = async () => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          // Verifica se existe uma transação aprovada nos últimos 10 minutos
+          const { data: recentTx } = await supabase.from('transactions')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('status', 'approved')
+            .gt('created_at', new Date(Date.now() - 10 * 60 * 1000).toISOString())
+            .maybeSingle();
+
+          if (recentTx) {
+              setStatus('success');
+              setTimeout(() => {
+                  onSuccess();
+              }, 2000);
+          }
+      };
+
+      const interval = setInterval(checkPayment, 5000); // Verifica a cada 5 segundos
+      return () => clearInterval(interval);
+  }, [status, isOpen, onSuccess]);
+
+  const handleManualCheck = async () => {
+      setIsChecking(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+          const { data: recentTx } = await supabase.from('transactions')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('status', 'approved')
+            .gt('created_at', new Date(Date.now() - 15 * 60 * 1000).toISOString())
+            .maybeSingle();
+          
+          if (recentTx) {
+              setStatus('success');
+              setTimeout(() => onSuccess(), 2000);
+          }
+      }
+      setTimeout(() => setIsChecking(false), 2000);
+  };
 
   const handleMercadoPagoCheckout = async (method: 'ALL' | 'PIX' = 'ALL') => {
     setStatus('loading');
@@ -247,9 +295,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
                         </button>
                     </div>
 
-                    <div className="flex items-center justify-center gap-2 text-xs text-yellow-500 animate-pulse">
+                    <div className="flex items-center justify-center gap-2 text-xs text-yellow-500 animate-pulse mb-4">
                         <Loader2 size={12} className="animate-spin" /> Aguardando pagamento...
                     </div>
+
+                    <button 
+                        onClick={handleManualCheck}
+                        disabled={isChecking}
+                        className="text-xs text-blue-400 hover:text-blue-300 underline disabled:opacity-50 w-full text-center"
+                    >
+                        {isChecking ? 'Verificando...' : 'Já paguei, verificar agora'}
+                    </button>
                 </div>
             )}
 

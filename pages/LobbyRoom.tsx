@@ -58,6 +58,15 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ user, isHost, config, lobbyId: pr
   useEffect(() => {
       if (!propLobbyId) return;
 
+      // CORREÇÃO: Buscar estado inicial imediatamente ao entrar
+      const fetchLobbyState = async () => {
+          const { data } = await supabase.from('lobbies').select('players').eq('id', propLobbyId).single();
+          if (data && data.players) {
+              setPlayers(data.players);
+          }
+      };
+      fetchLobbyState();
+
       const channel = supabase.channel(`lobby_state:${propLobbyId}`)
           .on(
               'postgres_changes',
