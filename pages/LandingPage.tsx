@@ -4,7 +4,7 @@ import { ShieldCheck, Zap, Users, Gamepad2, GraduationCap, ChevronRight, Star, L
 import { api } from '../services/api';
 
 interface LandingPageProps {
-  onGetStarted: () => void;
+  onGetStarted: (view?: 'LOGIN' | 'REGISTER') => void;
   onViewTerms: () => void;
   onViewPrivacy: () => void;
 }
@@ -62,16 +62,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
 
           <div className="flex items-center gap-6">
             <button
-              onClick={onGetStarted}
+              onClick={() => onGetStarted('LOGIN')}
               className="text-[10px] font-mono font-black text-slate-500 hover:text-white uppercase tracking-[0.3em] transition-all hidden md:block"
             >
-              LOGIN_TERMINAL
+              LOGIN TERMINAL
             </button>
             <button
-              onClick={onGetStarted}
+              onClick={() => onGetStarted('REGISTER')}
               className="px-8 py-3 bg-white/5 border border-white/10 hover:border-[#ffb800]/50 text-white font-tactical font-black text-xs uppercase italic tracking-widest rounded-sm transition-all hover:bg-white/10 flex items-center gap-3"
             >
-              CRIAR_IDENTIDADE <ChevronRight size={14} className="text-[#ffb800]" />
+              CRIAR IDENTIDADE <ChevronRight size={14} className="text-[#ffb800]" />
             </button>
           </div>
         </div>
@@ -87,12 +87,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ffb800] opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#ffb800]"></span>
             </span>
-            SISTEMA_DE_PAREAMENTO_TÁTICO_v4.0 // CS2_EXCLUSIVE
+            SISTEMA DE PAREAMENTO TÁTICO v4.0 // CS2 EXCLUSIVE
           </div>
 
           <h1 className="text-6xl md:text-9xl font-tactical font-black tracking-tighter mb-10 leading-[0.85] uppercase italic animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100">
             A ELITE DO <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-[#ffb800] to-white bg-[length:200%_auto] animate-gradient-x">SERVIDOR</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-[#ffb800] to-white bg-[length:200%_auto] animate-gradient-x pr-4">SERVIDOR</span>
           </h1>
 
           <p className="text-base md:text-xl text-slate-500 mb-14 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200 font-mono font-bold uppercase tracking-wider">
@@ -101,18 +101,18 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
 
           <div className="flex flex-col md:flex-row items-center justify-center gap-6 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
             <button
-              onClick={onGetStarted}
+              onClick={() => onGetStarted('LOGIN')}
               className="px-12 py-6 bg-[#ffb800] hover:bg-[#ffc933] text-black text-xl font-tactical font-black uppercase italic tracking-widest rounded-sm transition-all shadow-[0_10px_40px_rgba(255,184,0,0.2)] flex items-center gap-4 transform active:scale-95"
             >
               <Gamepad2 size={24} />
-              INICIAR_OPERACAO
+              INICIAR OPERAÇÃO
             </button>
             <button
               onClick={scrollToFeatures}
               className="px-10 py-6 bg-white/5 border border-white/10 text-white text-xl font-tactical font-black uppercase italic tracking-widest rounded-sm transition-all hover:bg-white/10 flex items-center gap-3"
             >
               <Terminal size={20} />
-              MANUAL_TATICO
+              MANUAL TÁTICO
             </button>
           </div>
 
@@ -123,28 +123,28 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
               <div className="text-3xl font-mono font-black text-white mb-2 tracking-tighter">
                 {loadingStats ? <div className="h-8 w-16 bg-white/10 rounded animate-pulse mx-auto"></div> : formatNumber(stats.users)}
               </div>
-              <div className="text-[10px] text-slate-600 uppercase tracking-[0.3em] font-black font-mono">OPERADORES_ATIVOS</div>
+              <div className="text-[10px] text-slate-600 uppercase tracking-[0.3em] font-black font-mono">OPERADORES ATIVOS</div>
             </div>
             <div className="text-center border-l border-white/5 relative group">
               <div className="absolute -inset-4 bg-[#ffb800]/5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="text-3xl font-mono font-black text-white mb-2 tracking-tighter">
                 {loadingStats ? <div className="h-8 w-16 bg-white/10 rounded animate-pulse mx-auto"></div> : formatNumber(stats.matches)}
               </div>
-              <div className="text-[10px] text-slate-600 uppercase tracking-[0.3em] font-black font-mono">CONFLITOS_SYNC</div>
+              <div className="text-[10px] text-slate-600 uppercase tracking-[0.3em] font-black font-mono">CONFLITOS SYNC</div>
             </div>
             <div className="text-center border-l border-white/5 relative group">
               <div className="absolute -inset-4 bg-[#ffb800]/5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="text-3xl font-mono font-black text-white mb-2 tracking-tighter">
                 {loadingStats ? <div className="h-8 w-16 bg-white/10 rounded animate-pulse mx-auto"></div> : stats.sherpas}
               </div>
-              <div className="text-[10px] text-slate-600 uppercase tracking-[0.3em] font-black font-mono">INSTRUTORES_PRO</div>
+              <div className="text-[10px] text-slate-600 uppercase tracking-[0.3em] font-black font-mono">INSTRUTORES PRO</div>
             </div>
             <div className="text-center border-l border-white/5 relative group">
               <div className="absolute -inset-4 bg-[#ffb800]/5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="text-3xl font-mono font-black text-[#ffb800] mb-2 tracking-tighter drop-shadow-[0_0_10px_rgba(255,184,0,0.3)]">
                 {loadingStats ? <div className="h-8 w-16 bg-white/10 rounded animate-pulse mx-auto"></div> : stats.satisfaction.toFixed(1)}
               </div>
-              <div className="text-[10px] text-slate-600 uppercase tracking-[0.3em] font-black font-mono">INDICE_DE_RESPEITO</div>
+              <div className="text-[10px] text-slate-600 uppercase tracking-[0.3em] font-black font-mono">ÍNDICE DE RESPEITO</div>
             </div>
           </div>
         </div>
@@ -168,7 +168,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
               <div className="w-16 h-16 bg-[#ffb800]/10 border border-[#ffb800]/20 rounded-sm flex items-center justify-center mb-10 group-hover:bg-[#ffb800] group-hover:text-black transition-all">
                 <ShieldCheck size={32} />
               </div>
-              <h3 className="text-2xl font-tactical font-black text-white mb-6 uppercase italic tracking-tight group-hover:text-[#ffb800] transition-colors">DNA_REPUTACAO</h3>
+              <h3 className="text-2xl font-tactical font-black text-white mb-6 uppercase italic tracking-tight group-hover:text-[#ffb800] transition-colors">DNA REPUTAÇÃO</h3>
               <p className="text-slate-500 leading-relaxed font-mono font-bold text-[11px] uppercase tracking-widest">
                 Seu comportamento dita seu destino. O Trust Score analisa cada assistência e report, garantindo que você jogue apenas com quem respeita o esporte.
               </p>
@@ -180,7 +180,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
               <div className="w-16 h-16 bg-[#ffb800]/10 border border-[#ffb800]/20 rounded-sm flex items-center justify-center mb-10 group-hover:bg-[#ffb800] group-hover:text-black transition-all">
                 <Crosshair size={32} />
               </div>
-              <h3 className="text-2xl font-tactical font-black text-white mb-6 uppercase italic tracking-tight group-hover:text-[#ffb800] transition-colors">MODULOS_DE_COMBATE</h3>
+              <h3 className="text-2xl font-tactical font-black text-white mb-6 uppercase italic tracking-tight group-hover:text-[#ffb800] transition-colors">MÓDULOS DE COMBATE</h3>
               <p className="text-slate-500 leading-relaxed font-mono font-bold text-[11px] uppercase tracking-widest">
                 Escolha sua diretriz: <strong>Tryhard</strong> para otimizar ELO, ou <strong>Casual</strong> para networking e chill. O sistema ajusta o pareamento automaticamente.
               </p>
@@ -192,7 +192,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
               <div className="w-16 h-16 bg-[#ffb800]/10 border border-[#ffb800]/20 rounded-sm flex items-center justify-center mb-10 group-hover:bg-[#ffb800] group-hover:text-black transition-all">
                 <Target size={32} />
               </div>
-              <h3 className="text-2xl font-tactical font-black text-white mb-6 uppercase italic tracking-tight group-hover:text-[#ffb800] transition-colors">ACADEMIA_ELITE</h3>
+              <h3 className="text-2xl font-tactical font-black text-white mb-6 uppercase italic tracking-tight group-hover:text-[#ffb800] transition-colors">ACADEMIA ELITE</h3>
               <p className="text-slate-500 leading-relaxed font-mono font-bold text-[11px] uppercase tracking-widest">
                 Acesso direto a instrutores verificados para análise de demos. Domine lineups e micro-movimentação com mentorias táticas personalizadas.
               </p>
@@ -207,7 +207,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
           <div className="flex-1 order-2 md:order-1">
             <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-green-500/10 text-green-400 border border-green-500/20 rounded-sm text-[10px] font-mono font-black uppercase tracking-[0.2em] mb-8">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_#22c55e]"></span>
-              SISTEMA_OPERACIONAL_ATIVO
+              SISTEMA OPERACIONAL ATIVO
             </div>
             <h2 className="text-4xl md:text-5xl font-tactical font-black mb-8 uppercase italic tracking-tighter leading-none">DOMÍNIO TOTAL DO <br /> SEU <span className="text-[#ffb800]">LOBBY</span></h2>
             <p className="text-slate-500 text-lg mb-12 font-mono font-bold uppercase tracking-widest leading-relaxed">
@@ -217,11 +217,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
             <div className="grid grid-cols-2 gap-6">
               <div className="bg-[#121417] p-6 rounded-sm border border-white/5 flex items-center gap-4 group hover:border-[#ffb800]/30 transition-all">
                 <div className="bg-[#ffb800]/10 p-3 rounded-sm text-[#ffb800] group-hover:bg-[#ffb800] group-hover:text-black transition-all"><Shield size={20} /></div>
-                <span className="font-tactical font-black text-xs uppercase italic tracking-widest text-white">ANTI-TROLL_SHIELD</span>
+                <span className="font-tactical font-black text-xs uppercase italic tracking-widest text-white">ANTI TROLL SHIELD</span>
               </div>
               <div className="bg-[#121417] p-6 rounded-sm border border-white/5 flex items-center gap-4 group hover:border-[#ffb800]/30 transition-all">
                 <div className="bg-[#ffb800]/10 p-3 rounded-sm text-[#ffb800] group-hover:bg-[#ffb800] group-hover:text-black transition-all"><Cpu size={20} /></div>
-                <span className="font-tactical font-black text-xs uppercase italic tracking-widest text-white">LOW_LATENCY_SYNC</span>
+                <span className="font-tactical font-black text-xs uppercase italic tracking-widest text-white">LOW LATENCY SYNC</span>
               </div>
             </div>
           </div>
@@ -232,12 +232,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
             <div className="bg-[#121417] rounded-sm p-8 relative transform rotate-y-12 rotate-x-6 hover:rotate-0 transition-all duration-1000 shadow-2xl border border-white/10 group">
               <div className="flex justify-between items-center mb-8 border-b border-white/5 pb-6">
                 <div>
-                  <h3 className="font-tactical font-black text-xl text-white uppercase italic tracking-tighter">CENTRAL_DE_COMANDO</h3>
-                  <span className="text-[10px] text-[#ffb800] font-mono font-black uppercase tracking-[0.3em]">MIRAGE // COMPETITIVE_DEPLOYMENT</span>
+                  <h3 className="font-tactical font-black text-xl text-white uppercase italic tracking-tighter">CENTRAL DE COMANDO</h3>
+                  <span className="text-[10px] text-[#ffb800] font-mono font-black uppercase tracking-[0.3em]">MIRAGE // COMPETITIVE DEPLOYMENT</span>
                 </div>
                 <div className="bg-black/40 px-3 py-1.5 border border-white/5 rounded-sm flex items-center gap-2">
                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-[10px] font-mono font-bold text-white">4/5_SYNC</span>
+                  <span className="text-[10px] font-mono font-bold text-white">4/5 SYNC</span>
                 </div>
               </div>
               <div className="space-y-4">
@@ -259,7 +259,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
                 ))}
                 <div className="flex items-center justify-center p-6 border-2 border-dashed border-white/5 rounded-sm bg-white/[0.01]">
                   <div className="animate-pulse flex items-center gap-3 text-[10px] font-mono font-black text-slate-700 uppercase tracking-[0.3em]">
-                    <Loader2 className="animate-spin" size={16} /> AGUARDANDO_5º_OPERADOR...
+                    <Loader2 className="animate-spin" size={16} /> AGUARDANDO 5º OPERADOR...
                   </div>
                 </div>
               </div>
@@ -275,15 +275,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
             <div className="w-10 h-10 bg-white text-black rounded-sm flex items-center justify-center font-tactical font-black text-2xl italic transition-transform group-hover:rotate-12">C</div>
             <div className="text-left">
               <span className="font-tactical font-black text-white block leading-none text-xl uppercase italic italic tracking-tighter">CARRYME</span>
-              <span className="text-[10px] uppercase font-mono font-bold tracking-[0.4em] text-slate-600">VIBE_OPERATIONS // 2026</span>
+              <span className="text-[10px] uppercase font-mono font-bold tracking-[0.4em] text-slate-600">VIBE OPERATIONS // 2026</span>
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-10">
-            <button onClick={onViewTerms} className="hover:text-[#ffb800] transition-all font-mono font-black uppercase tracking-[0.2em] text-[10px]">PROTOCOL_TERMS</button>
-            <button onClick={onViewPrivacy} className="hover:text-[#ffb800] transition-all font-mono font-black uppercase tracking-[0.2em] text-[10px]">PRIVACY_LOG</button>
+            <button onClick={onViewTerms} className="hover:text-[#ffb800] transition-all font-mono font-black uppercase tracking-[0.2em] text-[10px]">TERMOS DE USO</button>
+            <button onClick={onViewPrivacy} className="hover:text-[#ffb800] transition-all font-mono font-black uppercase tracking-[0.2em] text-[10px]">PRIVACIDADE</button>
             <div className="hidden md:block h-3 w-[1px] bg-white/10"></div>
-            <a href="#" className="hover:text-[#ffb800] transition-all font-mono font-black uppercase tracking-[0.2em] text-[10px]">DISCORD_HQ</a>
-            <a href="#" className="hover:text-[#ffb800] transition-all font-mono font-black uppercase tracking-[0.2em] text-[10px]">SUPPORT_DEPT</a>
+            <a href="#" className="hover:text-[#ffb800] transition-all font-mono font-black uppercase tracking-[0.2em] text-[10px]">DISCORD HQ</a>
+            <a href="#" className="hover:text-[#ffb800] transition-all font-mono font-black uppercase tracking-[0.2em] text-[10px]">SUPORTE</a>
           </div>
         </div>
       </footer>

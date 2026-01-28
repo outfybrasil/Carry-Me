@@ -19,7 +19,9 @@ import {
   Users,
   Terminal,
   Cpu,
-  Shield
+  Shield,
+  Info,
+  Lightbulb
 } from 'lucide-react';
 import { Player, AppNotification } from '../types';
 import { STORE_ITEMS } from '../constants';
@@ -145,12 +147,12 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
         {/* Nav Items */}
         <div className="flex-1 py-4 space-y-0.5 overflow-y-auto custom-scrollbar overflow-x-hidden">
           <NavItem page="dashboard" icon={LayoutDashboard} label="DASHBOARD" />
-          <NavItem page="match" icon={Swords} label="INICIAR_PARTIDA" />
-          <NavItem page="friends" icon={Users} label="LOBBY_AMIGOS" />
-          <NavItem page="achievements" icon={Trophy} label="PRO-REVIEWS" />
-          <NavItem page="profile" icon={User} label="MEU_PERFIL" />
-          <NavItem page="shop" icon={ShoppingBag} label="LOJA_SUPRIMENTOS" />
-          <NavItem page="sherpa" icon={GraduationCap} label="ACADEMIA_SHERPA" />
+          <NavItem page="match" icon={Swords} label="INICIAR PARTIDA" />
+          <NavItem page="friends" icon={Users} label="LOBBY AMIGOS" />
+          <NavItem page="achievements" icon={Trophy} label="PRO REVIEWS" />
+          <NavItem page="profile" icon={User} label="MEU PERFIL" />
+          <NavItem page="shop" icon={ShoppingBag} label="LOJA DE SUPRIMENTOS" />
+          <NavItem page="sherpa" icon={GraduationCap} label="ACADEMIA SHERPA" />
           <div className="pt-6 mt-6 border-t border-white/5 opacity-50">
             <NavItem page="settings" icon={SettingsIcon} label="SISTEMA" />
           </div>
@@ -164,7 +166,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
                 <h3 className="text-white font-tactical font-black text-xs uppercase italic tracking-widest mb-2">Upgrade Tactical</h3>
                 <p className="text-slate-500 text-[10px] leading-tight mb-4 font-medium uppercase tracking-widest">Acesse as filas exclusivas OutfyBR.</p>
                 <div className="w-full py-2 bg-[#ffb800] text-black font-mono font-black text-[9px] uppercase tracking-widest text-center shadow-[0_4px_10px_rgba(255,184,0,0.1)]">
-                  CONTRATAR_PLANO
+                  CONTRATAR PLANO
                 </div>
               </div>
             </div>
@@ -193,7 +195,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
                   <div className={`w-1.5 h-1.5 rounded-full ${user.score > 80 ? 'bg-green-500' : 'bg-[#ffb800]'} shadow-[0_0_5px_currentColor] animate-pulse`}></div>
-                  <div className="text-[10px] text-slate-600 font-mono font-bold uppercase tracking-widest">TACTICAL_SCORE: {user.score}</div>
+                  <div className="text-[10px] text-slate-600 font-mono font-bold uppercase tracking-widest">TACTICAL SCORE: {user.score}</div>
                 </div>
               </div>
             )}
@@ -204,7 +206,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
             title="Sair"
           >
             <LogOut size={16} />
-            {!isCollapsed && <span>TERMINAR_SESSAO</span>}
+            {!isCollapsed && <span>TERMINAR SESSÃO</span>}
           </button>
         </div>
       </aside>
@@ -220,7 +222,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
             </button>
             <div className="hidden md:flex items-center gap-3 text-slate-500">
               <Cpu size={16} />
-              <span className="text-[10px] font-mono font-bold uppercase tracking-[0.3em]">GATEWAY_STABLE // POS_001</span>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-[0.3em]">GATEWAY STABLE // POS 001</span>
             </div>
           </div>
 
@@ -242,9 +244,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
                   <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)}></div>
                   <div className="absolute right-0 top-14 w-96 bg-[#1c1f24] border border-white/10 rounded-sm shadow-2xl z-50 overflow-hidden animate-in slide-in-from-top-2 duration-300">
                     <div className="p-6 border-b border-white/10 flex justify-between items-center bg-[#121417]">
-                      <span className="font-tactical font-black text-sm uppercase italic tracking-widest text-[#ffb800]">CENTRAL_DE_ALERTAS</span>
+                      <span className="font-tactical font-black text-sm uppercase italic tracking-widest text-[#ffb800]">CENTRAL DE ALERTAS</span>
                       {unreadCount > 0 && (
-                        <button onClick={handleMarkAsRead} className="text-[10px] font-mono font-black text-white px-2 py-1 bg-white/5 hover:bg-[#ffb800] hover:text-black transition-all">LIMPAR_LOG</button>
+                        <button onClick={handleMarkAsRead} className="text-[10px] font-mono font-black text-white px-2 py-1 bg-white/5 hover:bg-[#ffb800] hover:text-black transition-all">LIMPAR LOG</button>
                       )}
                     </div>
                     <div className="max-h-[50vh] overflow-y-auto custom-scrollbar bg-[#0f1114]">
@@ -264,7 +266,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
                       ) : (
                         <div className="p-16 text-center text-slate-800 flex flex-col items-center gap-4">
                           <Shield size={48} className="opacity-10" />
-                          <span className="text-[10px] font-mono font-black uppercase tracking-widest">NENHUM_ALERTA_DETECTADO</span>
+                          <span className="text-[10px] font-mono font-black uppercase tracking-widest">NENHUM ALERTA DETECTADO</span>
                         </div>
                       )}
                     </div>
@@ -276,7 +278,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
                 <p className="text-[10px] font-tactical font-black uppercase italic tracking-tighter text-white">{user.username}</p>
-                <p className="text-[9px] font-mono font-bold text-[#ffb800] uppercase tracking-widest">{isPremium ? 'ELITE_PRO' : 'OPERADOR_RESERVISTA'}</p>
+                <p className="text-[9px] font-mono font-bold text-[#ffb800] uppercase tracking-widest">{isPremium ? 'ELITE PRO' : 'OPERADOR RESERVISTA'}</p>
               </div>
               <img src={user.avatar} className="w-10 h-10 rounded-sm border border-white/10" alt="Av" />
             </div>
@@ -291,9 +293,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, user,
 
           <footer className="p-8 border-t border-white/5 bg-[#121417]/30 text-center">
             <div className="flex justify-center gap-10 mb-4 font-mono text-[10px] font-black uppercase tracking-[0.3em] text-slate-700">
-              <button onClick={() => onNavigate('terms')} className="hover:text-[#ffb800] transition-colors">PROTOCOLO_DE_USO</button>
-              <button onClick={() => onNavigate('privacy')} className="hover:text-[#ffb800] transition-colors">POLITICA_LGPD</button>
-              <a href="mailto:support@carryme.gg" className="hover:text-[#ffb800] transition-colors">NUCLEO_SUPORTE</a>
+              <button onClick={() => onNavigate('terms')} className="hover:text-[#ffb800] transition-colors">TERMOS DE USO</button>
+              <button onClick={() => onNavigate('privacy')} className="hover:text-[#ffb800] transition-colors">POLÍTICA LGPD</button>
+              <a href="mailto:support@carryme.gg" className="hover:text-[#ffb800] transition-colors">CENTRAL DE SUPORTE</a>
             </div>
             <p className="text-[9px] font-mono text-slate-800 uppercase tracking-widest italic">&c; {new Date().getFullYear()} OUTFYBR_TECH // TODOS OS DIREITOS RESERVADOS.</p>
           </footer>

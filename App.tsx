@@ -74,13 +74,13 @@ const ManifestoModal = ({ onAccept }: { onAccept: () => void }) => (
             <Shield size={24} />
           </div>
           <div>
-            <h2 className="text-2xl font-tactical font-black text-white uppercase italic tracking-tighter">PROTOCOLO_DE_CONDUTA</h2>
+            <h2 className="text-2xl font-tactical font-black text-white uppercase italic tracking-tighter">PROTOCOLO DE CONDUTA</h2>
             <p className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mt-1">Sincronizando Manifesto CarryMe</p>
           </div>
         </div>
 
         <div className="space-y-6 text-slate-400 mb-10 max-h-[60vh] overflow-y-auto custom-scrollbar pr-4">
-          <p className="text-xs font-mono font-bold uppercase tracking-widest text-[#ffb800]">DIRETRIZES_ESTRATÉGICAS:</p>
+          <p className="text-xs font-mono font-bold uppercase tracking-widest text-[#ffb800]">DIRETRIZES ESTRATÉGICAS:</p>
           <ul className="space-y-4">
             <li className="flex gap-3">
               <span className="text-[#ffb800] mt-1 shrink-0"><CheckCircle size={14} /></span>
@@ -105,7 +105,7 @@ const ManifestoModal = ({ onAccept }: { onAccept: () => void }) => (
           onClick={onAccept}
           className="w-full py-5 bg-[#ffb800] hover:bg-[#ffc933] text-black font-tactical font-black uppercase italic tracking-widest rounded-sm transition-all shadow-[0_0_30px_rgba(255,184,0,0.15)] active:scale-95 flex items-center justify-center gap-3"
         >
-          <Terminal size={18} /> INICIAR_OPERACAO
+          <Terminal size={18} /> INICIAR OPERAÇÃO
         </button>
       </div>
 
@@ -128,6 +128,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<Player | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
+  const [initialAuthView, setInitialAuthView] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [isLobbyHost, setIsLobbyHost] = useState(false);
   const [currentLobbyId, setCurrentLobbyId] = useState<string | null>(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
@@ -311,29 +312,15 @@ const App: React.FC = () => {
           const profile = await api.syncUserProfile(session.user);
           if (mounted) {
             if (profile) {
+              console.log(">>> CARRYME INITIALIZED v1.0.1 <<<");
               setUser(profile);
               checkAvatarTask(profile); // Check avatar immediately
               currentUserRef = profile; // Update local ref
               if (!profile.tutorialCompleted) setOnboardingStep(1);
-
-              // CHECK WELCOME BONUS
-              api.checkWelcomeBonus(profile.id).then((granted) => {
-                if (granted && mounted) {
-                  setUser(prev => prev ? { ...prev, coins: prev.coins + 100 } : null);
-                  setCoinDiff(100);
-                  setToast({
-                    title: "Bônus de Boas-vindas! 🎁",
-                    msg: "Você recebeu 100 CarryCoins para começar sua jornada!",
-                    type: "success"
-                  });
-                  playUiSound('coin');
-                }
-              });
             } else {
-              // Se falhar ao sincronizar, desloga para evitar loop infinito
-              console.warn("Profile sync failed, signing out.");
-              await supabase.auth.signOut();
-              setUser(null);
+              // Fix: Show error screen instead of signing out to break the loop
+              console.warn("Profile sync failed, showing error screen.");
+              setProfileError(true);
             }
           }
         }
@@ -373,6 +360,7 @@ const App: React.FC = () => {
               if (!profile.tutorialCompleted) setOnboardingStep(1);
             } else {
               console.warn("Could not sync profile on state change");
+              setProfileError(true);
             }
           } catch (e) {
             console.error("Auth listener sync error:", e);
@@ -725,10 +713,13 @@ const App: React.FC = () => {
     return (
       <>
         {showAuth ? (
-          <Auth onLogin={handleLoginSuccess} onBack={() => setShowAuth(false)} />
+          <Auth onLogin={handleLoginSuccess} onBack={() => setShowAuth(false)} initialView={initialAuthView} />
         ) : (
           <LandingPage
-            onGetStarted={() => setShowAuth(true)}
+            onGetStarted={(view = 'LOGIN') => {
+              setInitialAuthView(view);
+              setShowAuth(true);
+            }}
             onViewTerms={() => setCurrentPage('terms')}
             onViewPrivacy={() => setCurrentPage('privacy')}
           />

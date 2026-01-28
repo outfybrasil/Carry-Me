@@ -85,7 +85,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
               <span className="text-xl leading-none">{match.result}</span>
             </div>
             <div>
-              <h3 className="text-xl font-tactical font-black text-white uppercase italic tracking-tighter">REGISTRO_DE_COMBATE</h3>
+              <h3 className="text-xl font-tactical font-black text-white uppercase italic tracking-tighter">REGISTRO DE COMBATE</h3>
               <p className="text-[10px] text-[#ffb800] font-mono font-bold uppercase tracking-widest">{match.map} // {match.mode} // {match.date}</p>
             </div>
           </div>
@@ -113,7 +113,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
           </div>
 
           <h4 className="text-xs font-mono font-black text-slate-500 uppercase tracking-widest mb-4 border-b border-white/5 pb-2 flex items-center gap-2">
-            <Shield size={14} className="text-[#ffb800]" /> ESQUADRÃO_OPERACIONAL
+            <Shield size={14} className="text-[#ffb800]" /> ESQUADRÃO OPERACIONAL
           </h4>
 
           <div className="space-y-3">
@@ -126,7 +126,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
                   </div>
                   <div className="flex gap-4">
                     <div className="text-right">
-                      <p className="text-[9px] text-slate-500 font-mono font-black uppercase">REPUTACAO</p>
+                      <p className="text-[9px] text-slate-500 font-mono font-black uppercase">REPUTAÇÃO</p>
                       <p className="text-xs font-mono font-black text-[#ffb800]">{player.score}</p>
                     </div>
                   </div>
@@ -157,7 +157,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
           <div className="max-w-xl text-center md:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ffb800]/20 border border-[#ffb800]/30 text-[#ffb800] text-[10px] font-mono font-black uppercase tracking-widest mb-6">
               <span className="w-1.5 h-1.5 bg-[#ffb800] rounded-full animate-pulse"></span>
-              SISTEMA_DE_COMBATE_ATIVO
+              SISTEMA DE COMBATE ATIVO
             </div>
             <h1 className="text-4xl md:text-6xl font-tactical font-black text-white italic tracking-tighter leading-none mb-6">
               DOMINE O <span className="text-[#ffb800]">SERVIDOR</span>
@@ -170,13 +170,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
                 onClick={onFindMatch}
                 className="px-10 py-5 bg-[#ffb800] text-black font-tactical font-black uppercase italic tracking-widest rounded-sm hover:bg-[#ffc933] hover:scale-105 transition-all shadow-[0_10px_30px_rgba(255,184,0,0.2)] active:scale-95 flex items-center justify-center gap-3"
               >
-                <Swords size={20} /> INICIAR_BUSCA
+                <Swords size={20} /> INICIAR BUSCA
               </button>
               <button
                 onClick={onVote}
                 className="px-8 py-5 bg-white/5 border border-white/10 text-white font-tactical font-black uppercase italic tracking-widest rounded-sm hover:bg-white/10 transition-all flex items-center justify-center gap-3"
               >
-                <Trophy size={18} className="text-[#ffb800]" /> REVISAR_AVALIACOES
+                <Trophy size={18} className="text-[#ffb800]" /> REVISAR AVALIAÇÕES
               </button>
             </div>
           </div>
@@ -188,7 +188,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
               <Terminal size={48} className="text-[#ffb800] mb-4 opacity-50" />
               <span className="text-3xl font-mono font-black text-white">0.92</span>
-              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Global_Efficiency</span>
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Global Efficiency</span>
             </div>
             {/* Decorative Dots */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3 h-3 bg-[#ffb800] rounded-full shadow-[0_0_10px_#ffb800]"></div>
@@ -209,7 +209,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
                   <Clock size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-tactical font-black text-white uppercase italic tracking-tight">LOG_DE_COMBATE</h3>
+                  <h3 className="text-lg font-tactical font-black text-white uppercase italic tracking-tight">LOG DE COMBATE</h3>
                   <p className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-widest">Últimos registros sincronizados</p>
                 </div>
               </div>
@@ -263,13 +263,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
                   <div className="w-8 h-8 bg-[#ffb800]/10 border border-[#ffb800]/20 rounded-lg flex items-center justify-center text-[#ffb800]">
                     <Lightbulb size={18} />
                   </div>
-                  <h3 className="text-sm font-tactical font-bold text-white uppercase italic tracking-widest">DICA_DO_DIA // {dailyTip.category.toUpperCase()}</h3>
+                  <h3 className="text-sm font-tactical font-bold text-white uppercase italic tracking-widest">DICA DO DIA // {dailyTip.category.toUpperCase()}</h3>
                 </div>
                 <h4 className="text-lg font-bold text-white mb-3 group-hover:text-[#ffb800] transition-colors">{dailyTip.title}</h4>
                 <p className="text-sm text-slate-400 leading-relaxed font-light mb-6">"{dailyTip.content}"</p>
 
                 <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                  <span className="text-[10px] font-mono text-slate-600 font-bold uppercase tracking-widest">UID_TOKEN: {dailyTip.id}</span>
+                  <span className="text-[10px] font-mono text-slate-600 font-bold uppercase tracking-widest">UID TOKEN: {dailyTip.id}</span>
                   <button
                     onClick={() => {
                       if (user?.isPremium) setIsTipsModalOpen(true);
@@ -279,7 +279,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
                   >
                     {!user?.isPremium && <Crown size={12} className="text-[#ffb800] animate-pulse" />}
                     <span className="text-[10px] font-mono font-black text-white hover:text-[#ffb800] transition-all uppercase tracking-widest flex items-center gap-2">
-                      BROWSE_TACTICS <TrendingUp size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                      EXPLORAR TÁTICAS <TrendingUp size={14} className="group-hover/btn:translate-x-1 transition-transform" />
                     </span>
                   </button>
                 </div>
@@ -298,7 +298,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
                 <Target size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-tactical font-black text-white uppercase italic tracking-tight">DIRETRIZES_DIARIAS</h3>
+                <h3 className="text-lg font-tactical font-black text-white uppercase italic tracking-tight">DIRETRIZES DIÁRIAS</h3>
                 <p className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-widest">Complete p/ coletar recompensas</p>
               </div>
             </div>
@@ -325,7 +325,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
                       ></div>
                     </div>
                     <div className="flex justify-between mt-1 text-[9px] font-mono font-bold uppercase tracking-widest">
-                      <span className={progValue.completed ? 'text-green-500' : 'text-slate-600'}>{progValue.completed ? 'OBJECTIVE_SYNCED' : 'IN_PROGRESS'}</span>
+                      <span className={progValue.completed ? 'text-green-500' : 'text-slate-600'}>{progValue.completed ? 'OBJETIVO SINCRONIZADO' : 'EM PROGRESSO'}</span>
                       <span className="text-slate-500">{progValue.current} / {m.target}</span>
                     </div>
                   </div>
@@ -334,25 +334,25 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
             </div>
 
             <div className="mt-8 pt-6 border-t border-white/5 text-center">
-              <p className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">O_SISTEMA_RESETA_EM: <span className="text-white">04:22:15</span></p>
+              <p className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">O SISTEMA RESETA EM: <span className="text-white">04:22:15</span></p>
             </div>
           </div>
 
           {/* Activity Quick View */}
           <div className="tactical-panel rounded-2xl p-6 bg-[#181b1f] overflow-hidden">
             <div className="absolute right-0 top-0 p-2 opacity-5"><Shield size={80} /></div>
-            <h3 className="text-xs font-mono font-black text-slate-500 uppercase tracking-widest mb-6 border-b border-white/5 pb-2">STATUS_OPERACIONAL</h3>
+            <h3 className="text-xs font-mono font-black text-slate-500 uppercase tracking-widest mb-6 border-b border-white/5 pb-2">STATUS OPERACIONAL</h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center bg-black/20 p-3 rounded-lg border border-white/5">
-                <span className="text-[10px] font-mono text-slate-400">SCORE_REPUTACAO</span>
+                <span className="text-[10px] font-mono text-slate-400">SCORE REPUTAÇÃO</span>
                 <span className="text-xs font-mono font-black text-[#ffb800]">{user?.score || 0}</span>
               </div>
               <div className="flex justify-between items-center bg-black/20 p-3 rounded-lg border border-white/5">
-                <span className="text-[10px] font-mono text-slate-400">SESSÕES_SHERPA</span>
+                <span className="text-[10px] font-mono text-slate-400">SESSÕES SHERPA</span>
                 <span className="text-xs font-mono font-black text-white">{user?.stats.sherpaSessions || 0}</span>
               </div>
               <div className="flex justify-between items-center bg-black/20 p-3 rounded-lg border border-white/5">
-                <span className="text-[10px] font-mono text-slate-400">TEMPO_FOGO</span>
+                <span className="text-[10px] font-mono text-slate-400">TEMPO DE JOGO</span>
                 <span className="text-xs font-mono font-black text-white">42h 12m</span>
               </div>
             </div>
@@ -371,7 +371,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-[#ffb800] text-black rounded-lg flex items-center justify-center font-black italic">T</div>
                 <div>
-                  <h2 className="text-2xl font-tactical font-black text-white uppercase italic tracking-tight underline decoration-[#ffb800]/50 underline-offset-4">BIBLIOTECA_TATICA</h2>
+                  <h2 className="text-2xl font-tactical font-black text-white uppercase italic tracking-tight underline decoration-[#ffb800]/50 underline-offset-4">BIBLIOTECA TÁTICA</h2>
                   <p className="text-slate-500 text-[10px] font-mono uppercase tracking-widest font-bold mt-1">Sincronizando banco de dados de instrutores CarryMe</p>
                 </div>
               </div>

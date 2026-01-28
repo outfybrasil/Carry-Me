@@ -32,7 +32,7 @@ const getEmptyAdvancedStats = (): AdvancedStats => {
 // Helper to transform DB shape to App shape
 const transformProfile = (data: any, inventory: any[]): Player => {
   const dbInventoryIds = (inventory || []).map((i: any) => i.item_id);
-  
+
   const defaultStats = {
     matchesPlayed: 0,
     mvps: 0,
@@ -43,16 +43,16 @@ const transformProfile = (data: any, inventory: any[]): Player => {
 
   const dbStats = data.stats || defaultStats;
   const dbAdvanced = data.advanced_stats || {};
-  const matchHistory = dbAdvanced.matchHistory || []; 
-  
+  const matchHistory = dbAdvanced.matchHistory || [];
+
   // Merge default structured stats with DB data to ensure no missing fields
   const defaultAdvanced = getEmptyAdvancedStats();
   const advancedStats = {
-      ...defaultAdvanced,
-      ...dbAdvanced.performance,
-      // Ensure arrays exist even if DB has partial data
-      radar: dbAdvanced.performance?.radar || defaultAdvanced.radar,
-      focusAreas: dbAdvanced.performance?.focusAreas || defaultAdvanced.focusAreas
+    ...defaultAdvanced,
+    ...dbAdvanced.performance,
+    // Ensure arrays exist even if DB has partial data
+    radar: dbAdvanced.performance?.radar || defaultAdvanced.radar,
+    focusAreas: dbAdvanced.performance?.focusAreas || defaultAdvanced.focusAreas
   };
 
   return {
@@ -151,92 +151,92 @@ export const api = {
   },
 
   // --- REAL LOBBY SYSTEM ---
-  
+
   async createLobby(config: LobbyConfig, host: Player) {
-      const playerEntry = {
-          id: host.id,
-          username: host.username,
-          avatar: host.avatar,
-          isHost: true,
-          isReady: true,
-          role: 'Flex',
-          score: host.score
-      };
-      
-      const { data, error } = await supabase.from('lobbies').insert({
-          host_id: host.id,
-          title: config.title,
-          game: config.game,
-          vibe: config.vibe,
-          min_score: config.minScore,
-          mic_required: config.micRequired,
-          max_players: config.maxPlayers,
-          players: [playerEntry],
-          status: 'OPEN'
-      }).select().single();
-      
-      if(error) {
-          console.error("Error creating lobby:", error);
-          return null;
-      }
-      return data.id;
+    const playerEntry = {
+      id: host.id,
+      username: host.username,
+      avatar: host.avatar,
+      isHost: true,
+      isReady: true,
+      role: 'Flex',
+      score: host.score
+    };
+
+    const { data, error } = await supabase.from('lobbies').insert({
+      host_id: host.id,
+      title: config.title,
+      game: config.game,
+      vibe: config.vibe,
+      min_score: config.minScore,
+      mic_required: config.micRequired,
+      max_players: config.maxPlayers,
+      players: [playerEntry],
+      status: 'OPEN'
+    }).select().single();
+
+    if (error) {
+      console.error("Error creating lobby:", error);
+      return null;
+    }
+    return data.id;
   },
 
   async findOpenLobby(game: string, vibe: string) {
-      const { data } = await supabase.from('lobbies')
-          .select('*')
-          .eq('game', game)
-          .eq('vibe', vibe)
-          .eq('status', 'OPEN')
-          .limit(10);
-      
-      if(data && data.length > 0) {
-          // Find one with space
-          const available = data.find((l: any) => l.players.length < l.max_players);
-          return available;
-      }
-      return null;
+    const { data } = await supabase.from('lobbies')
+      .select('*')
+      .eq('game', game)
+      .eq('vibe', vibe)
+      .eq('status', 'OPEN')
+      .limit(10);
+
+    if (data && data.length > 0) {
+      // Find one with space
+      const available = data.find((l: any) => l.players.length < l.max_players);
+      return available;
+    }
+    return null;
   },
 
   async getOpenLobbies(game: string, vibe: string) {
-      const { data } = await supabase.from('lobbies')
-          .select('*')
-          .eq('game', game)
-          .eq('vibe', vibe)
-          .eq('status', 'OPEN')
-          .order('created_at', { ascending: false })
-          .limit(20);
-      
-      if(data) {
-          return data.filter((l: any) => (l.players || []).length < l.max_players);
-      }
-      return [];
+    const { data } = await supabase.from('lobbies')
+      .select('*')
+      .eq('game', game)
+      .eq('vibe', vibe)
+      .eq('status', 'OPEN')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (data) {
+      return data.filter((l: any) => (l.players || []).length < l.max_players);
+    }
+    return [];
   },
 
   async joinLobby(lobbyId: string, user: Player) {
-      const { data: lobby } = await supabase.from('lobbies').select('players').eq('id', lobbyId).single();
-      if(!lobby) return false;
-      
-      const playerEntry = {
-          id: user.id,
-          username: user.username,
-          avatar: user.avatar,
-          isHost: false,
-          isReady: false,
-          role: 'Flex',
-          score: user.score
-      };
-      
-      // Check if already in
-      if(lobby.players.some((p: any) => p.id === user.id)) return true;
+    const { data: lobby } = await supabase.from('lobbies').select('players').eq('id', lobbyId).single();
+    if (!lobby) return false;
 
-      const newPlayers = [...lobby.players, playerEntry];
-      const { error } = await supabase.from('lobbies').update({ players: newPlayers }).eq('id', lobbyId);
-      return !error;
+    const playerEntry = {
+      id: user.id,
+      username: user.username,
+      avatar: user.avatar,
+      isHost: false,
+      isReady: false,
+      role: 'Flex',
+      score: user.score
+    };
+
+    // Check if already in
+    if (lobby.players.some((p: any) => p.id === user.id)) return true;
+
+    const newPlayers = [...lobby.players, playerEntry];
+    const { error } = await supabase.from('lobbies').update({ players: newPlayers }).eq('id', lobbyId);
+    return !error;
   },
 
   async updateLobbyPlayers(lobbyId: string, players: any[]) {
-      await supabase.from('lobbies').update({ players }).eq('id', lobbyId);
+    await supabase.from('lobbies').update({ players }).eq('id', lobbyId);
   },
 
   // --- STATS & ANALYTICS ---
@@ -244,12 +244,12 @@ export const api = {
     try {
       const { count: totalUsers } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
       const { count: totalMatches } = await supabase.from('match_history').select('*', { count: 'exact', head: true });
-      
-      return { 
-          users: totalUsers || 0, 
-          matches: (totalMatches || 0) + ((totalUsers || 0) * 5),
-          sherpas: Math.floor((totalUsers || 0) * 0.1), 
-          satisfaction: 4.9 
+
+      return {
+        users: totalUsers || 0,
+        matches: (totalMatches || 0) + ((totalUsers || 0) * 5),
+        sherpas: Math.floor((totalUsers || 0) * 0.1),
+        satisfaction: 4.9
       };
     } catch (e) {
       return { users: 0, matches: 0, sherpas: 0, satisfaction: 5.0 };
@@ -267,9 +267,9 @@ export const api = {
     const isEmail = loginIdentifier.includes('@');
 
     if (!isEmail) {
-        const { data: profileData } = await supabase.from('profiles').select('email').eq('username', loginIdentifier).maybeSingle();
-        if (!profileData?.email) throw new Error('Usuário não encontrado.');
-        emailToUse = profileData.email;
+      const { data: profileData } = await supabase.from('profiles').select('email').eq('username', loginIdentifier).maybeSingle();
+      if (!profileData?.email) throw new Error('Usuário não encontrado.');
+      emailToUse = profileData.email;
     }
 
     const { data, error } = await supabase.auth.signInWithPassword({ email: emailToUse, password });
@@ -294,9 +294,9 @@ export const api = {
   async resetPassword(identifier: string) {
     let emailToUse = identifier;
     if (!identifier.includes('@')) {
-        const { data } = await supabase.from('profiles').select('email').eq('username', identifier).maybeSingle();
-        if (!data?.email) throw new Error('Usuário não encontrado.');
-        emailToUse = data.email;
+      const { data } = await supabase.from('profiles').select('email').eq('username', identifier).maybeSingle();
+      if (!data?.email) throw new Error('Usuário não encontrado.');
+      emailToUse = data.email;
     }
     const { error } = await supabase.auth.resetPasswordForEmail(emailToUse, { redirectTo: window.location.origin + '?type=recovery' });
     if (error) throw error;
@@ -338,60 +338,65 @@ export const api = {
     }
   },
 
+  async checkWelcomeBonus(userId: string): Promise<boolean> {
+    // Stub implementation to prevent crash
+    return false;
+  },
+
   async syncUserProfile(user: any): Promise<Player | null> {
     try {
-        const userId = user.id;
-        
-        let { data: profile, error: fetchError } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+      const userId = user.id;
 
-        if (fetchError && fetchError.code !== 'PGRST116') {
-            console.error("Fetch profile error:", fetchError);
-            return null;
-        }
+      let { data: profile, error: fetchError } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
 
-        if (!profile) {
-          const meta = user.user_metadata || {};
-          let username = meta.custom_claims?.global_name || meta.full_name || meta.username || user.email?.split('@')[0] || 'Gamer';
-          const avatar = meta.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
-          const email = user.email;
-
-          const { data: newProfile, error: createError } = await supabase
-              .from('profiles')
-              .upsert({ 
-                  id: userId, 
-                  username, 
-                  email, 
-                  avatar, 
-                  score: 50, 
-                  coins: 0, 
-                  tutorial_completed: false 
-              }, { onConflict: 'id' }) 
-              .select().single();
-          
-          if (createError) {
-              console.error("Error creating/upserting profile:", createError);
-              const { data: retryProfile } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-              if (retryProfile) profile = retryProfile;
-              else return null;
-          } else {
-              profile = newProfile;
-          }
-        } 
-        
-        if (!profile) return null;
-
-        let inventory = [];
-        try {
-            const { data: invData } = await supabase.from('inventory').select('item_id').eq('user_id', userId);
-            inventory = invData || [];
-        } catch(e) {
-            console.warn("Failed to fetch inventory", e);
-        }
-        
-        return transformProfile(profile, inventory);
-    } catch (e) {
-        console.error("Sync profile unexpected error:", e);
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error("Fetch profile error:", fetchError);
         return null;
+      }
+
+      if (!profile) {
+        const meta = user.user_metadata || {};
+        let username = meta.custom_claims?.global_name || meta.full_name || meta.username || user.email?.split('@')[0] || 'Gamer';
+        const avatar = meta.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+        const email = user.email;
+
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: userId,
+            username,
+            email,
+            avatar,
+            score: 50,
+            coins: 0,
+            tutorial_completed: false
+          }, { onConflict: 'id' })
+          .select().single();
+
+        if (createError) {
+          console.error("Error creating/upserting profile:", createError);
+          const { data: retryProfile } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+          if (retryProfile) profile = retryProfile;
+          else return null;
+        } else {
+          profile = newProfile;
+        }
+      }
+
+      if (!profile) return null;
+
+      let inventory = [];
+      try {
+        const { data: invData } = await supabase.from('inventory').select('item_id').eq('user_id', userId);
+        inventory = invData || [];
+      } catch (e) {
+        console.warn("Failed to fetch inventory", e);
+      }
+
+      return transformProfile(profile, inventory);
+    } catch (e) {
+      console.error("Sync profile unexpected error:", e);
+      return null;
     }
   },
 
@@ -401,12 +406,12 @@ export const api = {
 
     let inventory: any[] = [];
     try {
-        const { data: invData } = await supabase.from('inventory').select('item_id').eq('user_id', profile.id);
-        inventory = invData || [];
-    } catch(e) {
-        console.warn("Failed to fetch inventory for public profile", e);
+      const { data: invData } = await supabase.from('inventory').select('item_id').eq('user_id', profile.id);
+      inventory = invData || [];
+    } catch (e) {
+      console.warn("Failed to fetch inventory for public profile", e);
     }
-    
+
     return transformProfile(profile, inventory);
   },
 
@@ -416,24 +421,24 @@ export const api = {
   },
 
   async uploadAvatar(userId: string, file: File) {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}-${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, file, { upsert: true });
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}-${Date.now()}.${fileExt}`;
 
-      if (uploadError) throw uploadError;
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, file, { upsert: true });
 
-      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
-      await this.updateAvatar(userId, data.publicUrl);
-      return data.publicUrl;
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+    await this.updateAvatar(userId, data.publicUrl);
+    return data.publicUrl;
   },
 
   async updateGameAccounts(userId: string, riotId: string, steamId: string, gameAuthCode?: string) {
-    const updateData: any = { 
-        riot_id: riotId || null, 
-        steam_id: steamId || null 
+    const updateData: any = {
+      riot_id: riotId || null,
+      steam_id: steamId || null
     };
     if (gameAuthCode !== undefined) updateData.game_auth_code = gameAuthCode || null;
 
@@ -442,104 +447,104 @@ export const api = {
   },
 
   // --- REAL SOCIAL AUTH & INTEGRATION ---
-  
+
   initiateSocialAuth(userId: string, provider: 'riot' | 'steam') {
-      const redirectUrl = `${window.location.origin}/settings`;
-      
-      if (provider === 'steam') {
-          const params = new URLSearchParams({
-            'openid.ns': 'http://specs.openid.net/auth/2.0',
-            'openid.mode': 'checkid_setup',
-            'openid.return_to': `${redirectUrl}?provider=steam`,
-            'openid.realm': window.location.origin,
-            'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
-            'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select',
-          });
-          return `https://steamcommunity.com/openid/login?${params.toString()}`;
-      }
-      return '#'; 
+    const redirectUrl = `${window.location.origin}/settings`;
+
+    if (provider === 'steam') {
+      const params = new URLSearchParams({
+        'openid.ns': 'http://specs.openid.net/auth/2.0',
+        'openid.mode': 'checkid_setup',
+        'openid.return_to': `${redirectUrl}?provider=steam`,
+        'openid.realm': window.location.origin,
+        'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
+        'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select',
+      });
+      return `https://steamcommunity.com/openid/login?${params.toString()}`;
+    }
+    return '#';
   },
 
   // PROD: Call Edge Function to verify Riot ID
   async verifyRiotAccount(fullRiotId: string): Promise<{ success: boolean, data?: any, error?: string }> {
-      try {
-          // Attempt to call Supabase Edge Function 'gaming-api'
-          const { data, error } = await supabase.functions.invoke('gaming-api', {
-              body: { action: 'verify-riot', riotId: fullRiotId }
-          });
+    try {
+      // Attempt to call Supabase Edge Function 'gaming-api'
+      const { data, error } = await supabase.functions.invoke('gaming-api', {
+        body: { action: 'verify-riot', riotId: fullRiotId }
+      });
 
-          if (error) throw error;
-          if (data?.error) throw new Error(data.error);
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-          return { success: true, data: data };
+      return { success: true, data: data };
 
-      } catch (e) {
-          console.warn("Edge Function failed or not deployed. Using DEMO fallback.");
-          // DEMO FALLBACK: Accept logic but mark as mock
-          if (fullRiotId.includes('#')) {
-              return { 
-                  success: true, 
-                  data: { riotId: fullRiotId, puuid: 'mock_puuid_demo' }, 
-                  error: 'Verificado (Modo Demo)' 
-              };
-          }
-          return { success: false, error: 'Formato inválido ou serviço indisponível.' };
+    } catch (e) {
+      console.warn("Edge Function failed or not deployed. Using DEMO fallback.");
+      // DEMO FALLBACK: Accept logic but mark as mock
+      if (fullRiotId.includes('#')) {
+        return {
+          success: true,
+          data: { riotId: fullRiotId, puuid: 'mock_puuid_demo' },
+          error: 'Verificado (Modo Demo)'
+        };
       }
+      return { success: false, error: 'Formato inválido ou serviço indisponível.' };
+    }
   },
 
   // PROD: Call Edge Function to fetch Steam Data
   async finalizeSteamAuth(userId: string, steamId: string) {
-      try {
-          await supabase.functions.invoke('gaming-api', {
-              body: { action: 'sync-steam', userId, steamId }
-          });
-      } catch (e) {
-          console.warn("Edge Function failed. Skipping real stat sync.");
-      }
+    try {
+      await supabase.functions.invoke('gaming-api', {
+        body: { action: 'sync-steam', userId, steamId }
+      });
+    } catch (e) {
+      console.warn("Edge Function failed. Skipping real stat sync.");
+    }
 
-      // Local fallback updates
-      const { data: profile } = await supabase.from('profiles').select('advanced_stats').eq('id', userId).single();
-      const currentStats = profile?.advanced_stats?.performance || getEmptyAdvancedStats();
+    // Local fallback updates
+    const { data: profile } = await supabase.from('profiles').select('advanced_stats').eq('id', userId).single();
+    const currentStats = profile?.advanced_stats?.performance || getEmptyAdvancedStats();
 
-      const newStats = {
-          ...currentStats,
-          headshotPct: Math.floor(Math.random() * 30) + 20, 
-          adr: Math.floor(Math.random() * 80) + 100,
-          radar: currentStats.radar.map((r: any) => ({ ...r, A: Math.min(100, r.A + 15) })),
-          focusAreas: [
-              { title: 'Mira (CS2/Steam)', score: 'A', trend: 'up', description: 'Dados sincronizados.', color: 'text-green-400' },
-              ...((currentStats.focusAreas || []).slice(0, 2))
-          ]
-      };
+    const newStats = {
+      ...currentStats,
+      headshotPct: Math.floor(Math.random() * 30) + 20,
+      adr: Math.floor(Math.random() * 80) + 100,
+      radar: currentStats.radar.map((r: any) => ({ ...r, A: Math.min(100, r.A + 15) })),
+      focusAreas: [
+        { title: 'Mira (CS2/Steam)', score: 'A', trend: 'up', description: 'Dados sincronizados.', color: 'text-green-400' },
+        ...((currentStats.focusAreas || []).slice(0, 2))
+      ]
+    };
 
-      await supabase.from('profiles').update({
-          steam_id: steamId,
-          advanced_stats: { ...profile?.advanced_stats, performance: newStats }
-      }).eq('id', userId);
-      return true;
+    await supabase.from('profiles').update({
+      steam_id: steamId,
+      advanced_stats: { ...profile?.advanced_stats, performance: newStats }
+    }).eq('id', userId);
+    return { success: true, message: 'Steam vinculada com sucesso.' };
   },
 
   // Sync stats after linking
   async syncExternalStats(userId: string, provider: 'riot' | 'steam') {
-      // Just a trigger for visual feedback in the MVP
-      const { data: profile } = await supabase.from('profiles').select('advanced_stats').eq('id', userId).single();
-      const currentStats = profile?.advanced_stats?.performance || getEmptyAdvancedStats();
-      
-      const newStats = {
-          ...currentStats,
-          headshotPct: Math.floor(Math.random() * 30) + 20,
-          adr: Math.floor(Math.random() * 80) + 100,
-          radar: currentStats.radar.map((r: any) => ({ ...r, A: Math.min(100, r.A + 15) })),
-          focusAreas: [
-              { title: `Mira (${provider === 'riot' ? 'Valorant' : 'CS2'})`, score: 'A', trend: 'up', description: 'Dados sincronizados.', color: 'text-green-400' },
-              ...((currentStats.focusAreas || []).slice(0, 2))
-          ]
-      };
-      
-      await supabase.from('profiles').update({
-          advanced_stats: { ...profile?.advanced_stats, performance: newStats }
-      }).eq('id', userId);
-      return true;
+    // Just a trigger for visual feedback in the MVP
+    const { data: profile } = await supabase.from('profiles').select('advanced_stats').eq('id', userId).single();
+    const currentStats = profile?.advanced_stats?.performance || getEmptyAdvancedStats();
+
+    const newStats = {
+      ...currentStats,
+      headshotPct: Math.floor(Math.random() * 30) + 20,
+      adr: Math.floor(Math.random() * 80) + 100,
+      radar: currentStats.radar.map((r: any) => ({ ...r, A: Math.min(100, r.A + 15) })),
+      focusAreas: [
+        { title: `Mira (${provider === 'riot' ? 'Valorant' : 'CS2'})`, score: 'A', trend: 'up', description: 'Dados sincronizados.', color: 'text-green-400' },
+        ...((currentStats.focusAreas || []).slice(0, 2))
+      ]
+    };
+
+    await supabase.from('profiles').update({
+      advanced_stats: { ...profile?.advanced_stats, performance: newStats }
+    }).eq('id', userId);
+    return true;
   },
 
   async completeTutorial(userId: string) {
@@ -559,9 +564,9 @@ export const api = {
   async purchaseCoins(userId: string, amount: number) {
     const { data: user } = await supabase.from('profiles').select('coins').eq('id', userId).single();
     if (user) {
-        await supabase.from('profiles').update({ coins: user.coins + amount }).eq('id', userId);
+      await supabase.from('profiles').update({ coins: user.coins + amount }).eq('id', userId);
     }
-    return true; 
+    return true;
   },
 
   async claimAchievement(userId: string, achievementId: string, reward: number) {
@@ -570,10 +575,10 @@ export const api = {
 
     const currentClaims = user.claimed_achievements || [];
     if (!currentClaims.includes(achievementId)) {
-        const newClaims = [...currentClaims, achievementId];
-        await supabase.from('profiles').update({ claimed_achievements: newClaims }).eq('id', userId);
-        await this.purchaseCoins(userId, reward);
-        return true;
+      const newClaims = [...currentClaims, achievementId];
+      await supabase.from('profiles').update({ claimed_achievements: newClaims }).eq('id', userId);
+      await this.purchaseCoins(userId, reward);
+      return true;
     }
     return false;
   },
@@ -624,23 +629,23 @@ export const api = {
 
     const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
     advanced.matchHistory = [...(advanced.matchHistory || []), {
-        date: today,
-        rating: newScore,
-        kda: Number((isWin ? 2.5 + Math.random() : 1.0 + Math.random()).toFixed(2))
+      date: today,
+      rating: newScore,
+      kda: Number((isWin ? 2.5 + Math.random() : 1.0 + Math.random()).toFixed(2))
     }].slice(-10);
 
     await supabase.from('profiles').update({
-        stats: stats,
-        advanced_stats: advanced,
-        score: newScore
+      stats: stats,
+      advanced_stats: advanced,
+      score: newScore
     }).eq('id', userId);
 
     await supabase.from('match_history').insert({
-        user_id: userId,
-        result: isWin ? 'VICTORY' : 'DEFEAT',
-        score_change: isWin ? 2 : -1,
-        game_mode: 'Ranked',
-        created_at: new Date().toISOString()
+      user_id: userId,
+      result: isWin ? 'VICTORY' : 'DEFEAT',
+      score_change: isWin ? 2 : -1,
+      game_mode: 'Ranked',
+      created_at: new Date().toISOString()
     });
 
     this.createNotification(userId, "Partida Processada", `Resultado: ${isWin ? 'Vitória' : 'Derrota'}. Score atualizado.`, isWin ? "success" : "info");
@@ -666,7 +671,7 @@ export const api = {
   },
 
   // --- LOBBY CHAT (Interaction) ---
-  
+
   async sendLobbyMessage(lobbyId: string, user: Player, text: string) {
     await supabase.from('lobby_messages').insert({
       lobby_id: lobbyId,
@@ -690,7 +695,7 @@ export const api = {
       senderId: msg.user_id,
       senderName: msg.username,
       text: msg.text,
-      timestamp: new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+      timestamp: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }));
   },
 
@@ -700,31 +705,31 @@ export const api = {
   },
 
   // --- DIRECT MESSAGES (CHAT) ---
-  
+
   async sendDirectMessage(senderId: string, receiverId: string, text: string) {
     const { error } = await supabase.from('direct_messages').insert({
-        sender_id: senderId,
-        receiver_id: receiverId,
-        text: text,
-        created_at: new Date().toISOString()
+      sender_id: senderId,
+      receiver_id: receiverId,
+      text: text,
+      created_at: new Date().toISOString()
     });
     return !error;
   },
 
   async getDirectMessages(myId: string, friendId: string): Promise<ChatMessage[]> {
-      const { data } = await supabase.from('direct_messages')
-        .select('*')
-        .or(`and(sender_id.eq.${myId},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${myId})`)
-        .order('created_at', { ascending: true })
-        .limit(50);
-    
-      return (data || []).map((msg: any) => ({
-          id: msg.id,
-          senderId: msg.sender_id,
-          senderName: '', // Handled by UI context
-          text: msg.text,
-          timestamp: new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-      }));
+    const { data } = await supabase.from('direct_messages')
+      .select('*')
+      .or(`and(sender_id.eq.${myId},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${myId})`)
+      .order('created_at', { ascending: true })
+      .limit(50);
+
+    return (data || []).map((msg: any) => ({
+      id: msg.id,
+      senderId: msg.sender_id,
+      senderName: '', // Handled by UI context
+      text: msg.text,
+      timestamp: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }));
   },
 
   // --- NOTIFICATIONS & FRIENDS ---
@@ -732,7 +737,7 @@ export const api = {
   async getNotifications(userId: string): Promise<AppNotification[]> {
     const { data } = await supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(20);
     return (data || []).map((n: any) => ({
-        id: n.id, title: n.title, message: n.message, type: n.type, timestamp: new Date(n.created_at).toLocaleDateString(), read: n.read
+      id: n.id, title: n.title, message: n.message, type: n.type, timestamp: new Date(n.created_at).toLocaleDateString(), read: n.read
     }));
   },
 
@@ -746,13 +751,13 @@ export const api = {
 
   // Helper for game invites
   async sendGameInvite(fromUser: Player, toUserId: string, gameName: string = "uma partida") {
-      await this.createNotification(
-          toUserId, 
-          "Convite de Jogo", 
-          `${fromUser.username} te convidou para jogar ${gameName}.`, 
-          "success"
-      );
-      return true;
+    await this.createNotification(
+      toUserId,
+      "Convite de Jogo",
+      `${fromUser.username} te convidou para jogar ${gameName}.`,
+      "success"
+    );
+    return true;
   },
 
   async searchUsers(query: string, currentUserId: string): Promise<Friend[]> {
@@ -762,11 +767,11 @@ export const api = {
 
   async getFriends(userId: string): Promise<Friend[]> {
     const { data: friendships } = await supabase.from('friendships').select(`status, sender:user_id_1(id, username, avatar, score), receiver:user_id_2(id, username, avatar, score)`)
-        .or(`user_id_1.eq.${userId},user_id_2.eq.${userId}`).eq('status', 'accepted');
+      .or(`user_id_1.eq.${userId},user_id_2.eq.${userId}`).eq('status', 'accepted');
     if (!friendships) return [];
     return friendships.map((f: any) => {
-        const friendData = f.sender.id === userId ? f.receiver : f.sender;
-        return { id: friendData.id, username: friendData.username, avatar: friendData.avatar, score: friendData.score, status: 'offline' };
+      const friendData = f.sender.id === userId ? f.receiver : f.sender;
+      return { id: friendData.id, username: friendData.username, avatar: friendData.avatar, score: friendData.score, status: 'offline' };
     });
   },
 
@@ -778,10 +783,10 @@ export const api = {
   async sendFriendRequest(fromUser: Player, toUser: Friend) {
     const { data: existing } = await supabase.from('friendships').select('id').or(`and(user_id_1.eq.${fromUser.id},user_id_2.eq.${toUser.id}),and(user_id_1.eq.${toUser.id},user_id_2.eq.${fromUser.id})`).maybeSingle();
     if (existing) return { success: false, message: 'Já existe uma conexão entre vocês.' };
-    
+
     // CORRECTION: user_id -> user_id_1
     const { error } = await supabase.from('friendships').insert({ user_id_1: fromUser.id, user_id_2: toUser.id, status: 'pending' });
-    
+
     if (error) return { success: false, message: 'Erro ao enviar.' };
     this.createNotification(toUser.id, "Nova Solicitação", `${fromUser.username} quer ser seu amigo.`, "info");
     return { success: true, message: 'Solicitação enviada!' };
@@ -797,19 +802,19 @@ export const api = {
 
   async removeFriend(myId: string, friendId: string) {
     const { error } = await supabase.from('friendships')
-        .delete()
-        .or(`and(user_id_1.eq.${myId},user_id_2.eq.${friendId}),and(user_id_1.eq.${friendId},user_id_2.eq.${myId})`);
+      .delete()
+      .or(`and(user_id_1.eq.${myId},user_id_2.eq.${friendId}),and(user_id_1.eq.${friendId},user_id_2.eq.${myId})`);
     return !error;
   },
 
   async blockUser(blockerId: string, blockedId: string) {
     // 1. Remove friendship if exists
     await this.removeFriend(blockerId, blockedId);
-    
+
     // 2. Add to blocked_users
     const { error } = await supabase.from('blocked_users').insert({
-        blocker_id: blockerId,
-        blocked_id: blockedId
+      blocker_id: blockerId,
+      blocked_id: blockedId
     });
     return !error;
   },
@@ -832,14 +837,14 @@ export const api = {
   // --- PAYMENT ---
   async createMercadoPagoPreference(userId: string, email: string, title: string, price: number, method: 'ALL' | 'PIX' = 'ALL'): Promise<any> {
     try {
-        const { data, error } = await supabase.functions.invoke('create-payment', {
-            body: { userId, email, title, price, origin: window.location.origin, method }
-        });
-        if (error) throw error;
-        return data || null;
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: { userId, email, title, price, origin: window.location.origin, method }
+      });
+      if (error) throw error;
+      return data || null;
     } catch (e) {
-        console.error("Payment Error:", e);
-        return null; 
+      console.error("Payment Error:", e);
+      return null;
     }
   },
 
@@ -851,11 +856,11 @@ export const api = {
   async getTransactionHistory(userId: string): Promise<Transaction[]> {
     const { data } = await supabase.from('transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false });
     return (data || []).map((t: any) => ({
-        id: t.id,
-        amount: t.amount,
-        coins: t.coins,
-        type: t.type,
-        date: new Date(t.created_at).toLocaleDateString()
+      id: t.id,
+      amount: t.amount,
+      coins: t.coins,
+      type: t.type,
+      date: new Date(t.created_at).toLocaleDateString()
     }));
   }
 };

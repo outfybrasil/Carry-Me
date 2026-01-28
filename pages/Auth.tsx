@@ -151,14 +151,14 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack, initialView = 'LOGIN' }) =
               <div>
                 <h1 className="text-lg font-tactical font-black tracking-tighter text-white uppercase italic">Carry<span className="text-[#ffb800]">Me</span></h1>
                 <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
-                  <span className="flex items-center gap-1 animate-pulse"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span> SERVER_ONLINE</span>
+                  <span className="flex items-center gap-1 animate-pulse"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span> SERVER ONLINE</span>
                   <span className="opacity-30">|</span>
                   <span>v4.2.0_TACTICAL</span>
                 </div>
               </div>
             </div>
             <div className="hidden sm:flex flex-col items-end font-mono text-[9px] text-slate-600">
-              <p>SECURE_AUTH_LAYER</p>
+              <p>SECURE AUTH LAYER</p>
               <p>ENCRYPTION: AES-256</p>
             </div>
           </div>
@@ -168,7 +168,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack, initialView = 'LOGIN' }) =
 
             {/* BACK BUTTON */}
             <button onClick={onBack} className="absolute top-4 left-4 text-slate-600 hover:text-[#ffb800] transition-colors z-20 flex items-center text-[10px] font-mono uppercase tracking-[0.2em] group">
-              <ArrowLeft size={12} className="mr-2 group-hover:-translate-x-1 transition-transform" /> TERMINAR_CONEXAO
+              <ArrowLeft size={12} className="mr-2 group-hover:-translate-x-1 transition-transform" /> TERMINAR CONEXÃO
             </button>
 
             <div className="mt-4">
@@ -191,12 +191,12 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack, initialView = 'LOGIN' }) =
                   <form onSubmit={handleLogin} className="space-y-5">
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest pl-1">ID_USUARIO / EMAIL</label>
+                        <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest pl-1">ID USUÁRIO / EMAIL</label>
                         <Cpu size={12} className="text-slate-700" />
                       </div>
                       <input
                         type="text"
-                        placeholder="NICKNAME_OU_EMAIL"
+                        placeholder="NICKNAME OU EMAIL"
                         className="w-full bg-black/40 border border-white/5 rounded-sm py-4 px-5 focus:border-[#ffb800]/50 focus:outline-none transition-all placeholder:text-slate-800 font-mono text-sm text-white"
                         value={loginIdentifier}
                         onChange={(e) => setLoginIdentifier(e.target.value)}
@@ -205,7 +205,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack, initialView = 'LOGIN' }) =
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest pl-1">PASSWORD_TOKEN</label>
+                        <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest pl-1">SENHA</label>
                         <Lock size={12} className="text-slate-700" />
                       </div>
                       <div className="relative">
@@ -224,7 +224,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack, initialView = 'LOGIN' }) =
 
                   <div className="relative py-4">
                     <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
-                    <div className="relative flex justify-center text-[10px] uppercase tracking-[0.3em] font-mono font-bold"><span className="px-4 bg-[#121417] text-slate-600">OU_CONEXAO_EXTERNA</span></div>
+                    <div className="relative flex justify-center text-[10px] uppercase tracking-[0.3em] font-mono font-bold"><span className="px-4 bg-[#121417] text-slate-600">OU CONEXÃO EXTERNA</span></div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -263,20 +263,20 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack, initialView = 'LOGIN' }) =
 
                   <form onSubmit={handleRegister} className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest pl-1">ESTABELECER_NICKNAME</label>
+                      <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest pl-1">ESTABELECER NICKNAME</label>
                       <input type="text" placeholder="EX: CARRY_MASTER" className="w-full bg-black/40 border border-white/5 rounded-sm py-4 px-5 focus:border-[#ffb800]/50 focus:outline-none transition-all font-mono text-sm text-white" value={username} onChange={(e) => setUsername(e.target.value)} required />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest pl-1">ENDPOINT_EMAIL</label>
+                      <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest pl-1">EMAIL</label>
                       <input type="email" placeholder="OPERADOR@CARRYME.GG" className="w-full bg-black/40 border border-white/5 rounded-sm py-4 px-5 focus:border-[#ffb800]/50 focus:outline-none transition-all font-mono text-sm text-white" value={email} onChange={(e) => setEmail(e.target.value)} required />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest pl-1">PASSWORD</label>
+                        <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest pl-1">SENHA</label>
                         <input type="password" placeholder="••••••••" className="w-full bg-black/40 border border-white/5 rounded-sm py-4 px-5 focus:border-[#ffb800]/50 focus:outline-none transition-all font-mono text-sm text-white" value={password} onChange={(e) => setPassword(e.target.value)} required />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest pl-1">CONFIRM</label>
+                        <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest pl-1">CONFIRMAR SENHA</label>
                         <input type="password" placeholder="••••••••" className="w-full bg-black/40 border border-white/5 rounded-sm py-4 px-5 focus:border-[#ffb800]/50 focus:outline-none transition-all font-mono text-sm text-white" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
                       </div>
                     </div>
@@ -291,13 +291,37 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack, initialView = 'LOGIN' }) =
                     </div>
 
                     <button type="submit" disabled={isLoading || !agreedToTerms} className="w-full py-5 bg-[#ffb800] text-black font-tactical font-black uppercase italic tracking-widest hover:bg-[#ffc933] transition-all flex items-center justify-center mt-6 shadow-[0_4px_20px_rgba(255,184,0,0.15)]">
-                      {isLoading ? <Loader2 className="animate-spin" /> : 'CONCLUIR_CADASTRO'}
+                      {isLoading ? <Loader2 className="animate-spin" /> : 'CONCLUIR CADASTRO'}
                     </button>
                   </form>
                 </div>
               )}
 
               {/* OTHER VIEWS (FORGOT, UPDATE_PASSWORD, VERIFY_SENT) follow the same tactical pattern */}
+              {view === 'VERIFY_SENT' && (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
+                  <div className="mb-8">
+                    <div className="w-16 h-16 bg-[#ffb800]/10 border border-[#ffb800]/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Mail size={32} className="text-[#ffb800]" />
+                    </div>
+                    <h2 className="text-2xl font-tactical font-black text-white uppercase tracking-tight italic">Verifique seu Email</h2>
+                    <p className="text-slate-500 text-sm mt-4 font-medium leading-relaxed">
+                      Um link de confirmação foi enviado para <strong className="text-white">{email}</strong>.
+                      <br />Acesse sua caixa de entrada para ativar seu agente.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <button onClick={() => setView('LOGIN')} className="w-full py-5 bg-[#ffb800] text-black font-tactical font-black uppercase italic tracking-widest hover:bg-[#ffc933] transition-all flex items-center justify-center shadow-[0_4px_20px_rgba(255,184,0,0.15)]">
+                      RETORNAR AO LOGIN
+                    </button>
+                    <button type="button" onClick={() => setView('LOGIN')} className="text-slate-500 text-[10px] font-mono uppercase tracking-[0.2em] hover:text-white transition-colors">
+                      REENVIAR CÓDIGO
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {view === 'FORGOT' && (
                 <form onSubmit={handleResetPassword} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div className="mb-8">
@@ -311,7 +335,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack, initialView = 'LOGIN' }) =
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest pl-1">EMAIL_VINCULADO</label>
+                      <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest pl-1">EMAIL VINCULADO</label>
                       <input
                         type="text"
                         placeholder="OPERADOR@EMAIL.COM"
@@ -325,12 +349,12 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack, initialView = 'LOGIN' }) =
 
                   {!successMsg && (
                     <button type="submit" disabled={isLoading} className="w-full py-5 bg-[#ffb800] text-black font-tactical font-black uppercase italic tracking-widest hover:bg-[#ffc933] transition-all flex items-center justify-center shadow-[0_4px_20px_rgba(255,184,0,0.15)]">
-                      {isLoading ? <Loader2 className="animate-spin" /> : 'ENVIAR_PROTOCOLO_RECUPERACAO'}
+                      {isLoading ? <Loader2 className="animate-spin" /> : 'ENVIAR RECUPERAÇÃO'}
                     </button>
                   )}
 
                   <button type="button" onClick={() => setView('LOGIN')} className="w-full py-2 text-slate-500 text-[10px] font-mono uppercase tracking-[0.2em] hover:text-white transition-colors">
-                    CANCELAR_OPERACAO
+                    CANCELAR OPERAÇÃO
                   </button>
                 </form>
               )}
@@ -343,12 +367,12 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack, initialView = 'LOGIN' }) =
             {view === 'LOGIN' ? (
               <div className="flex flex-col gap-1">
                 <p className="text-slate-500 text-[10px] uppercase tracking-widest font-mono">Sem acesso ao sistema?</p>
-                <button onClick={() => setView('REGISTER')} className="text-[#ffb800] text-xs font-black uppercase tracking-widest hover:underline text-left">INICIAR_NOVA_INSCRICAO</button>
+                <button onClick={() => setView('REGISTER')} className="text-[#ffb800] text-xs font-black uppercase tracking-widest hover:underline text-left">CRIAR NOVA CONTA</button>
               </div>
             ) : view === 'FORGOT' ? null : view === 'UPDATE_PASSWORD' ? null : (
               <div className="flex flex-col gap-1 w-full text-center">
                 <p className="text-slate-500 text-[10px] uppercase tracking-widest font-mono">Já possui protocolo ativo?</p>
-                <button onClick={() => setView('LOGIN')} className="text-[#ffb800] text-xs font-black uppercase tracking-widest hover:underline">VOLTAR_AO_LOGIN</button>
+                <button onClick={() => setView('LOGIN')} className="text-[#ffb800] text-xs font-black uppercase tracking-widest hover:underline">VOLTAR AO LOGIN</button>
               </div>
             )}
 
@@ -361,7 +385,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onBack, initialView = 'LOGIN' }) =
 
         {/* EXTERNAL DECORATIVE ELEMENTS */}
         <div className="mt-8 flex justify-between items-center px-4">
-          <p className="text-[9px] font-mono text-slate-700 tracking-widest">ENCRYPTED_SIGNAL :: 248.12.9.22</p>
+          <p className="text-[9px] font-mono text-slate-700 tracking-widest">ENCRYPTED SIGNAL :: 248.12.9.22</p>
           <div className="flex gap-4">
             <div className="w-1.5 h-1.5 bg-slate-800 rounded-full"></div>
             <div className="w-1.5 h-1.5 bg-slate-800 rounded-full"></div>
