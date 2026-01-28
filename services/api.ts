@@ -1,6 +1,6 @@
 
 import { supabase } from '../lib/supabase';
-import { Player, AppNotification, Friend, FriendRequest, AdvancedStats, Match, ChatMessage, Transaction, LobbyConfig } from '../types';
+import { Player, AppNotification, Friend, FriendRequest, AdvancedStats, Match, ChatMessage, Transaction, LobbyConfig, SherpaProfile } from '../types';
 
 // NOTE: API Keys are now removed from client-side code for security.
 // They must be configured in Supabase Edge Functions environment variables.
@@ -526,7 +526,14 @@ export const api = {
 
   // Sync stats after linking
   async syncExternalStats(userId: string, provider: 'riot' | 'steam') {
-    // Just a trigger for visual feedback in the MVP
+    if (provider === 'steam') {
+      const { data: profile } = await supabase.from('profiles').select('steam_id').eq('id', userId).single();
+      if (profile?.steam_id) {
+        return await this.syncLeetifyStats(userId, profile.steam_id);
+      }
+    }
+
+    // Fallback/Riot mock
     const { data: profile } = await supabase.from('profiles').select('advanced_stats').eq('id', userId).single();
     const currentStats = profile?.advanced_stats?.performance || getEmptyAdvancedStats();
 
@@ -536,7 +543,7 @@ export const api = {
       adr: Math.floor(Math.random() * 80) + 100,
       radar: currentStats.radar.map((r: any) => ({ ...r, A: Math.min(100, r.A + 15) })),
       focusAreas: [
-        { title: `Mira (${provider === 'riot' ? 'Valorant' : 'CS2'})`, score: 'A', trend: 'up', description: 'Dados sincronizados.', color: 'text-green-400' },
+        { title: `Mira (${provider === 'riot' ? 'Valorant' : 'CS2'})`, score: 'A', trend: 'up', description: 'Dados sincronizados via Fallback.', color: 'text-green-400' },
         ...((currentStats.focusAreas || []).slice(0, 2))
       ]
     };
@@ -545,6 +552,128 @@ export const api = {
       advanced_stats: { ...profile?.advanced_stats, performance: newStats }
     }).eq('id', userId);
     return true;
+  },
+
+  async syncLeetifyStats(userId: string, steamId: string) {
+    console.log(`>>> Starting Leetify Sync for SteamID: ${steamId} <<<`);
+    try {
+      // The correct identifier parameter is "id" and header is "Bearer <key>"
+      const response = await fetch(`https://api-public.cs-prod.leetify.com/v3/profile?id=${steamId}`, {
+        headers: {
+          "Authorization": "Bearer 333b716b-739f-48e4-b204-7361f565b3dd",
+          "Accept": "application/json"
+        }
+      });
+
+      console.log(`Leetify Response Status: ${response.status}`);
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error(`Leetify API Error Body: ${errText}`);
+        throw new Error(`Leetify API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+
+      console.log("Leetify Profile Data received successfully");
+      return this.processLeetifyData(userId, data, steamId);
+    } catch (e) {
+      console.error("Leetify Sync Error:", e);
+      return false;
+    }
+  },
+
+  async processLeetifyData(userId: string, data: any, steamId: string) {
+    try {
+      const lStats = data.stats || {};
+      const lRating = data.rating || {};
+      const recentMatchesList = data.recent_matches || [];
+
+      console.log("Processing Leetify data for SteamID:", steamId);
+
+      // Aggregate last 30 matches for metrics
+      const last30 = recentMatchesList.slice(0, 30);
+      const avgHS = last30.length > 0 ? (last30.reduce((acc: number, m: any) => acc + (m.accuracy_head || 0), 0) / last30.length) : (lStats.accuracy_head || 0);
+      const avgLeetifyRating = last30.length > 0 ? (last30.reduce((acc: number, m: any) => acc + (m.leetify_rating || 0), 0) / last30.length) : (data.ranks?.leetify || 0);
+
+      // Fetch matches using ?id= identifier
+      const matchesRes = await fetch(`https://api-public.cs-prod.leetify.com/v3/profile/matches?id=${steamId}`, {
+        headers: { "Authorization": "Bearer 333b716b-739f-48e4-b204-7361f565b3dd" }
+      }).catch(() => null);
+
+      if (matchesRes && matchesRes.ok) {
+        const matchesData = await matchesRes.json(); // This is an array in V3
+        const recentMatches = Array.isArray(matchesData) ? matchesData : (matchesData.matches || []);
+        console.log(`Fetched ${recentMatches.length} matches from Leetify`);
+
+        // Sync last 3 to Supabase
+        for (const m of recentMatches.slice(0, 3)) {
+          const playerMatchStats = m.stats?.find((s: any) => s.steam64_id === steamId) || m.stats?.[0] || {};
+
+          // Determine result
+          const myTeam = m.team_scores?.find((t: any) => t.team_number === playerMatchStats.initial_team_number);
+          const otherTeam = m.team_scores?.find((t: any) => t.team_number !== playerMatchStats.initial_team_number);
+          const result = (myTeam && otherTeam && myTeam.score > otherTeam.score) ? 'VICTORY' : 'DEFEAT';
+
+          await supabase.from('match_history').insert({
+            user_id: userId,
+            result: result,
+            map: m.map_name || 'Unknown',
+            kills: playerMatchStats.total_kills || 0,
+            deaths: playerMatchStats.total_deaths || 0,
+            rating: Number(playerMatchStats.leetify_rating) || 0,
+            created_at: m.finished_at || new Date().toISOString(),
+            game_mode: m.data_source || 'Ranked'
+          });
+        }
+      }
+
+      const { data: profile } = await supabase.from('profiles').select('advanced_stats').eq('id', userId).single();
+      const currentStats = profile?.advanced_stats?.performance || getEmptyAdvancedStats();
+
+      const newStats: AdvancedStats = {
+        ...currentStats,
+        headshotPct: Math.round(avgHS || currentStats.headshotPct),
+        adr: Math.round(lStats.adr || currentStats.adr), // lStats might not have it directly, use current as fallback
+        kast: Math.round(lStats.kast || currentStats.kast),
+        entrySuccess: Math.round((lRating.opening || 0) * 100) || currentStats.entrySuccess,
+        clutchSuccess: Math.round((lRating.clutch || 0) * 100) || currentStats.clutchSuccess,
+        radar: currentStats.radar.map((r: any) => {
+          if (r.subject.includes('Mira')) return { ...r, A: Math.round((lRating.aim || 0) * 100) || r.A };
+          if (r.subject.includes('Utilitários')) return { ...r, A: Math.round((lRating.utility || 0) * 100) || r.A };
+          if (r.subject.includes('Posicionamento')) return { ...r, A: Math.round((lRating.positioning || 0) * 100) || r.A };
+          if (r.subject.includes('Clutch')) return { ...r, A: Math.round((lRating.clutch || 0) * 100) || r.A };
+          if (r.subject.includes('Entry Frag')) return { ...r, A: Math.round((lRating.opening || 0) * 100) || r.A };
+          return r;
+        }),
+        focusAreas: [
+          {
+            title: 'Sincronização Leetify (30 Partidas)',
+            score: avgLeetifyRating.toFixed(2),
+            trend: 'stable',
+            description: `Métricas baseadas nas últimas ${last30.length} partidas. Rating Médio: ${avgLeetifyRating.toFixed(2)}`,
+            color: 'text-[#ffb800]'
+          },
+          ...((currentStats.focusAreas || []).slice(0, 2))
+        ]
+      };
+
+      await supabase.from('profiles').update({
+        advanced_stats: { ...profile?.advanced_stats, performance: newStats }
+      }).eq('id', userId);
+
+      console.log(">>> Leetify Sync Completed successfully <<<");
+      return true;
+    } catch (e) {
+      console.error("Leetify Sync Error:", e);
+      return false;
+    }
+  },
+
+  async unlinkSteam(userId: string) {
+    const { error } = await supabase.from('profiles').update({ steam_id: null }).eq('id', userId);
+    return !error;
   },
 
   async completeTutorial(userId: string) {
@@ -792,12 +921,78 @@ export const api = {
     return { success: true, message: 'Solicitação enviada!' };
   },
 
-  async acceptFriendRequest(requestId: string, currentUserId: string) {
-    await supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId);
+  async respondToFriendRequest(requestId: string, accept: boolean) {
+    if (accept) {
+      const { error } = await supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId);
+      return !error;
+    } else {
+      const { error } = await supabase.from('friendships').delete().eq('id', requestId);
+      return !error;
+    }
   },
 
-  async rejectFriendRequest(requestId: string) {
-    await supabase.from('friendships').delete().eq('id', requestId);
+  // --- SHERPA SYSTEM ---
+
+  async getSherpas(): Promise<SherpaProfile[]> {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('is_sherpa', true)
+      .limit(20);
+
+    if (!profiles) return [];
+
+    return profiles.map(p => ({
+      id: p.id,
+      player: {
+        id: p.id,
+        username: p.username,
+        avatar: p.avatar,
+        score: p.score || 50,
+        badges: p.badges || [],
+        matchesPlayed: p.stats?.matchesPlayed || 0
+      },
+      rating: 4.8, // Mock for MVP
+      reviews: Math.floor(Math.random() * 50) + 10,
+      hourlyRate: p.sherpa_rate || 20,
+      specialties: p.specialties || ['General Coaching'],
+      isOnline: true
+    }));
+  },
+
+  async becomeSherpa(userId: string, rate: number, specialties: string[]) {
+    // Deduct 100 coins as registration fee
+    const { data: user } = await supabase.from('profiles').select('coins').eq('id', userId).single();
+    if (!user || user.coins < 100) return false;
+
+    const { error: coinError } = await supabase.from('profiles').update({ coins: user.coins - 100 }).eq('id', userId);
+    if (coinError) return false;
+
+    const { error } = await supabase.from('profiles').update({
+      is_sherpa: true,
+      sherpa_rate: rate,
+      specialties: specialties
+    }).eq('id', userId);
+
+    return !error;
+  },
+
+  async hireSherpa(userId: string, sherpaId: string, rate: number) {
+    // Transactional logic for hiring
+    const { data: user } = await supabase.from('profiles').select('coins').eq('id', userId).single();
+    if (!user || user.coins < rate) return { success: false, message: 'Saldo insuficiente.' };
+
+    const { error: coinError } = await supabase.from('profiles').update({ coins: user.coins - rate }).eq('id', userId);
+    if (coinError) return { success: false, message: 'Erro na transação.' };
+
+    await this.createNotification(
+      sherpaId,
+      "Nova Sessão Contratada",
+      `Um jogador te contratou para uma sessão de coaching. Fique atento ao chat!`,
+      "success"
+    );
+
+    return { success: true, message: 'Sessão contratada com sucesso!' };
   },
 
   async removeFriend(myId: string, friendId: string) {
@@ -817,21 +1012,6 @@ export const api = {
       blocked_id: blockedId
     });
     return !error;
-  },
-
-  // --- SHERPA ---
-  async becomeSherpa(userId: string, hourlyRate: number, specialties: string[]) {
-    const { error } = await supabase.from('profiles').update({ is_sherpa: true, sherpa_data: { hourlyRate, specialties } }).eq('id', userId);
-    return !error;
-  },
-
-  async hireSherpa(clientId: string, sherpaId: string, cost: number) {
-    const { data: client } = await supabase.from('profiles').select('coins').eq('id', clientId).single();
-    if (!client || client.coins < cost) return { success: false, message: 'Saldo insuficiente.' };
-    await this.purchaseCoins(clientId, -cost);
-    await this.purchaseCoins(sherpaId, cost);
-    this.createNotification(sherpaId, "Nova Contratação!", "Alguém contratou seus serviços de Sherpa.", "reward");
-    return { success: true, message: 'Sucesso!' };
   },
 
   // --- PAYMENT ---

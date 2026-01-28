@@ -216,14 +216,20 @@ const Settings: React.FC<SettingsProps> = ({ user, onLogout, onNavigate, volume,
                                     <button
                                         onClick={async () => {
                                             setIsSyncing('steam');
-                                            try { await api.finalizeSteamAuth(user.id, user.steamId!); if (onUpdateUser) await onUpdateUser(); } catch (err) { alert('Erro.'); }
+                                            const success = await api.syncExternalStats(user.id, 'steam');
+                                            if (success) {
+                                                if (onUpdateUser) await onUpdateUser();
+                                                alert('Estatísticas Leetify sincronizadas!');
+                                            } else {
+                                                alert('Erro ao sincronizar com Leetify. Verifique se seu perfil é público.');
+                                            }
                                             setIsSyncing(null);
                                         }}
                                         disabled={!!isSyncing}
-                                        className="py-4 bg-white/5 hover:bg-white/10 text-white font-mono font-black text-xs uppercase tracking-widest rounded-sm flex items-center justify-center gap-3 transition-all border border-white/10"
+                                        className="py-4 bg-[#ffb800]/10 hover:bg-[#ffb800]/20 text-[#ffb800] font-mono font-black text-xs uppercase tracking-widest rounded-sm flex items-center justify-center gap-3 transition-all border border-[#ffb800]/20"
                                     >
                                         <RefreshCw size={16} className={isSyncing === 'steam' ? 'animate-spin' : ''} />
-                                        {isSyncing === 'steam' ? 'SINCRO_ATIVA...' : 'RECUPERAR_ESTATÍSTICAS'}
+                                        {isSyncing === 'steam' ? 'SINCRO_ATIVA...' : 'SINCRONIZAR_LEETIFY'}
                                     </button>
 
                                     <button

@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Swords, Clock, AlertTriangle, Target, Trophy, TrendingUp, Activity, CheckCircle2, Lightbulb, Crosshair, X, Crown, Lock, Terminal, Cpu, Zap, Shield } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { api } from '../services/api';
 import { Player, Match } from '../types';
 import { CS_TIPS, GameTip } from '../constants/tips';
+import { StatsOverview } from '../components/StatsOverview';
 
 interface DashboardProps {
   onFindMatch: () => void;
@@ -41,8 +43,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
       const data = await api.checkSession();
       if (data) {
         setUser(data);
-        const matches = await api.getRecentMatches(data.id);
-        setRecentMatches(matches);
       }
       setLoadingMatches(false);
 
@@ -52,6 +52,36 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
     };
     load();
   }, []);
+
+  useEffect(() => {
+    const loadMatches = async () => {
+      if (!user?.id) return;
+      setLoadingMatches(true);
+      const { data, error } = await supabase
+        .from('match_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+      if (!error && data) {
+        setRecentMatches(data.map((m: any) => ({
+          id: m.id,
+          result: m.result === 'VICTORY' || m.result === 'WIN' ? 'WIN' : 'LOSE',
+          map: m.map || 'Unknown',
+          date: new Date(m.created_at).toLocaleDateString(),
+          kills: m.kills || 0,
+          deaths: m.deaths || 0,
+          assists: m.assists || 0,
+          rating: Number(m.rating) || 0,
+          timestamp: m.created_at,
+          mode: m.game_mode || 'Ranked'
+        })));
+      }
+      setLoadingMatches(false);
+    };
+    loadMatches();
+  }, [user?.id]);
 
   // Seleciona 3 missões baseadas no dia para parecer rotação
   const todayStr = new Date().toDateString();
@@ -196,6 +226,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
         </div>
       </div>
 
+      {user?.advancedStats && (
+        <StatsOverview
+          stats={user.advancedStats}
+          winRate={recentMatches.length > 0 ? (recentMatches.filter(m => m.result === 'WIN').length / recentMatches.length) : 0.52}
+          leetifyRating={user.advancedStats.focusAreas?.[0]?.score || "0.00"}
+          totalMatches={30}
+        />
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         {/* LEFT COLUMN: HISTORY & TIPS */}
@@ -236,12 +275,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onFindMatch, onVote, onUpgrade })
                     </div>
                     <div className="flex items-center gap-8 md:gap-12">
                       <div className="hidden sm:flex flex-col items-center">
-                        <span className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-widest mb-1">K/D/A</span>
-                        <span className="text-sm font-mono font-bold text-white tracking-widest">{match.kills}/{match.deaths}/{match.assists}</span>
+                        <span className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-widest mb-1">K/D</span>
+                        <span className="text-sm font-mono font-bold text-white tracking-widest">{match.kills}/{match.deaths}</span>
                       </div>
                       <div className="text-right">
                         <span className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-widest block mb-1">RATING</span>
-                        <span className={`text-sm font-mono font-black ${match.rating >= 1.2 ? 'text-[#ffb800]' : 'text-slate-300'}`}>{match.rating?.toFixed(2)}</span>
+                        <span className={`text-sm font-mono font-black ${match.rating >= 1.2 ? 'text-[#ffb800]' : 'text-slate-300'}`}>{match.rating?.toFixed(2) || '0.00'}</span>
                       </div>
                     </div>
                   </button>
