@@ -1,8 +1,9 @@
 
 export enum Vibe {
   TRYHARD = 'Tryhard',
-  CHILL = 'Chill',
-  LEARNING = 'Learning'
+  CHILL = 'Casual',
+  LEARNING = 'Iniciante',
+  PRACTICE = 'Treino (Execs)'
 }
 
 export enum TagType {
@@ -20,7 +21,9 @@ export interface Tag {
 export enum ItemType {
   BORDER = 'BORDER',
   NAME_COLOR = 'NAME_COLOR',
-  BANNER = 'BANNER'
+  TITLE = 'TITLE',
+  EMOTE = 'EMOTE',
+  ENTRY_EFFECT = 'ENTRY_EFFECT'
 }
 
 export interface StoreItem {
@@ -86,25 +89,28 @@ export interface Player {
   id: string;
   username: string;
   avatar: string;
-  riotId?: string; 
-  steamId?: string; 
+  riotId?: string;
+  gameAuthCode?: string;
+  steamId?: string;
+  clanId?: string;
   score: number; // -100 to 100
   badges: string[];
   isSherpa?: boolean;
   gameRole?: string;
   isPremium?: boolean;
   coins: number;
-  tutorialCompleted: boolean; 
-  inventory: string[]; 
+  tutorialCompleted: boolean;
+  inventory: string[];
   equipped: {
-    border?: string; 
-    nameColor?: string; 
-    banner?: string; 
+    border?: string;
+    nameColor?: string;
+    title?: string;
+    entryEffect?: string;
   };
   stats: PlayerStats;
   matchHistory: MatchHistoryPoint[];
   advancedStats: AdvancedStats;
-  claimedAchievements: string[]; 
+  claimedAchievements: string[];
 }
 
 export interface Friend {
@@ -113,6 +119,7 @@ export interface Friend {
   avatar: string;
   status: 'online' | 'offline' | 'ingame';
   score: number;
+  since?: string;
 }
 
 export interface FriendRequest {
@@ -138,6 +145,31 @@ export interface LobbyPlayer {
   isReady: boolean;
   role: string;
   score: number;
+  // Visual Equips
+  title?: string;
+  entryEffect?: string;
+  nameColor?: string;
+  border?: string;
+}
+
+export interface Clan {
+  id: string;
+  name: string;
+  tag: string;
+  ownerId: string;
+  logoUrl?: string;
+  description?: string;
+  prestige: number;
+  createdAt: string;
+  memberCount?: number;
+}
+
+export interface ClanMember {
+  clanId: string;
+  userId: string;
+  role: 'owner' | 'admin' | 'member';
+  joinedAt: string;
+  profile?: Player;
 }
 
 export interface ChatMessage {

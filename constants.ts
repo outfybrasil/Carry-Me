@@ -46,6 +46,8 @@ export const ACHIEVEMENTS_LIST: Achievement[] = [
 export const MOCK_NOTIFICATIONS: AppNotification[] = [];
 
 /* --- MASSIVE STORE ITEMS LIST --- */
+export const CLAN_CREATION_COST = 2500;
+
 export const STORE_ITEMS: StoreItem[] = [
   // ================= BORDERS =================
 
@@ -171,67 +173,125 @@ export const STORE_ITEMS: StoreItem[] = [
   { id: 'color_l_nightmare', name: 'Nightmare', type: ItemType.NAME_COLOR, price: 48000, value: 'text-red-900 font-black tracking-tighter drop-shadow-[0_0_5px_rgba(0,0,0,1)]', description: 'Pesadelo.', rarity: 'legendary' },
   { id: 'color_l_gm', name: 'Game Master', type: ItemType.NAME_COLOR, price: 50000, value: 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-red-600 to-yellow-600 font-black uppercase tracking-widest', description: 'Mestre do jogo.', rarity: 'legendary' },
 
-  // ================= BANNERS =================
+  // ================= TITLES =================
+  // Títulos que aparecem abaixo do nome do jogador
 
-  // COMMON (10)
-  { id: 'banner_c_slate', name: 'Slate Wall', type: ItemType.BANNER, price: 100, value: 'bg-slate-800', description: 'Parede cinza.', rarity: 'common' },
-  { id: 'banner_c_zinc', name: 'Zinc Plate', type: ItemType.BANNER, price: 150, value: 'bg-zinc-800', description: 'Placa de zinco.', rarity: 'common' },
-  { id: 'banner_c_red', name: 'Red Cloth', type: ItemType.BANNER, price: 200, value: 'bg-red-900', description: 'Tecido vermelho.', rarity: 'common' },
-  { id: 'banner_c_blue', name: 'Blue Sea', type: ItemType.BANNER, price: 200, value: 'bg-blue-900', description: 'Mar azul.', rarity: 'common' },
-  { id: 'banner_c_green', name: 'Green Field', type: ItemType.BANNER, price: 200, value: 'bg-green-900', description: 'Campo verde.', rarity: 'common' },
-  { id: 'banner_c_purple', name: 'Purple Haze', type: ItemType.BANNER, price: 250, value: 'bg-purple-900', description: 'Névoa roxa.', rarity: 'common' },
-  { id: 'banner_c_orange', name: 'Orange Sky', type: ItemType.BANNER, price: 250, value: 'bg-orange-900', description: 'Céu laranja.', rarity: 'common' },
-  { id: 'banner_c_teal', name: 'Teal Deep', type: ItemType.BANNER, price: 250, value: 'bg-teal-900', description: 'Profundezas.', rarity: 'common' },
-  { id: 'banner_c_dark', name: 'Darkness', type: ItemType.BANNER, price: 300, value: 'bg-black', description: 'Escuridão.', rarity: 'common' },
-  { id: 'banner_c_light', name: 'Lightness', type: ItemType.BANNER, price: 300, value: 'bg-slate-200', description: 'Luz.', rarity: 'common' },
+  // COMMON
+  { id: 'title_c_gamer', name: 'Gamer', type: ItemType.TITLE, price: 150, value: 'Gamer', description: 'O básico que todo mundo começa.', rarity: 'common' },
+  { id: 'title_c_rookie', name: 'Novato', type: ItemType.TITLE, price: 150, value: 'Novato', description: 'Recém chegado.', rarity: 'common' },
+  { id: 'title_c_player', name: 'Player One', type: ItemType.TITLE, price: 200, value: 'Player One', description: 'Pronto para jogar.', rarity: 'common' },
+  { id: 'title_c_casual', name: 'Casual', type: ItemType.TITLE, price: 200, value: 'Casual', description: 'Só pra relaxar.', rarity: 'common' },
+  { id: 'title_c_friendly', name: 'Amigável', type: ItemType.TITLE, price: 250, value: 'Amigável', description: 'Sempre de boas.', rarity: 'common' },
 
-  // UNCOMMON (10)
-  { id: 'banner_u_grad_blue', name: 'Blue Gradient', type: ItemType.BANNER, price: 600, value: 'bg-gradient-to-br from-blue-900 to-blue-800', description: 'Gradiente azul.', rarity: 'uncommon' },
-  { id: 'banner_u_grad_red', name: 'Red Gradient', type: ItemType.BANNER, price: 600, value: 'bg-gradient-to-br from-red-900 to-red-800', description: 'Gradiente vermelho.', rarity: 'uncommon' },
-  { id: 'banner_u_grad_green', name: 'Green Gradient', type: ItemType.BANNER, price: 600, value: 'bg-gradient-to-br from-green-900 to-green-800', description: 'Gradiente verde.', rarity: 'uncommon' },
-  { id: 'banner_u_grad_purple', name: 'Purple Gradient', type: ItemType.BANNER, price: 700, value: 'bg-gradient-to-br from-purple-900 to-purple-800', description: 'Gradiente roxo.', rarity: 'uncommon' },
-  { id: 'banner_u_grad_orange', name: 'Orange Gradient', type: ItemType.BANNER, price: 700, value: 'bg-gradient-to-br from-orange-900 to-orange-800', description: 'Gradiente laranja.', rarity: 'uncommon' },
-  { id: 'banner_u_grad_teal', name: 'Teal Gradient', type: ItemType.BANNER, price: 700, value: 'bg-gradient-to-br from-teal-900 to-teal-800', description: 'Gradiente ciano.', rarity: 'uncommon' },
-  { id: 'banner_u_grad_grey', name: 'Grey Gradient', type: ItemType.BANNER, price: 800, value: 'bg-gradient-to-br from-slate-900 to-slate-700', description: 'Gradiente cinza.', rarity: 'uncommon' },
-  { id: 'banner_u_grad_zinc', name: 'Zinc Gradient', type: ItemType.BANNER, price: 800, value: 'bg-gradient-to-br from-zinc-900 to-zinc-700', description: 'Gradiente de zinco.', rarity: 'uncommon' },
-  { id: 'banner_u_grad_stone', name: 'Stone Gradient', type: ItemType.BANNER, price: 900, value: 'bg-gradient-to-br from-stone-900 to-stone-700', description: 'Gradiente de pedra.', rarity: 'uncommon' },
-  { id: 'banner_u_grad_neutral', name: 'Neutral Gradient', type: ItemType.BANNER, price: 900, value: 'bg-gradient-to-br from-neutral-900 to-neutral-700', description: 'Gradiente neutro.', rarity: 'uncommon' },
+  // UNCOMMON
+  { id: 'title_u_tryhard', name: 'Tryhard', type: ItemType.TITLE, price: 600, value: 'Tryhard', description: 'Cada round importa.', rarity: 'uncommon' },
+  { id: 'title_u_clutch', name: 'Clutcher', type: ItemType.TITLE, price: 700, value: 'Clutcher', description: 'Especialista em 1vX.', rarity: 'uncommon' },
+  { id: 'title_u_sniper', name: 'Sniper', type: ItemType.TITLE, price: 700, value: 'Sniper', description: 'Um tiro, um kill.', rarity: 'uncommon' },
+  { id: 'title_u_support', name: 'Suporte', type: ItemType.TITLE, price: 650, value: 'Suporte', description: 'O herói silencioso.', rarity: 'uncommon' },
+  { id: 'title_u_igl', name: 'IGL', type: ItemType.TITLE, price: 800, value: 'IGL', description: 'In-Game Leader.', rarity: 'uncommon' },
 
-  // RARE (10)
-  { id: 'banner_r_night_sky', name: 'Night Sky', type: ItemType.BANNER, price: 2000, value: 'bg-gradient-to-b from-slate-900 to-blue-900', description: 'Céu noturno.', rarity: 'rare' },
-  { id: 'banner_r_forest', name: 'Deep Forest', type: ItemType.BANNER, price: 2000, value: 'bg-gradient-to-b from-green-900 to-emerald-950', description: 'Floresta densa.', rarity: 'rare' },
-  { id: 'banner_r_volcano', name: 'Volcano', type: ItemType.BANNER, price: 2200, value: 'bg-gradient-to-t from-red-900 to-orange-900', description: 'Vulcão ativo.', rarity: 'rare' },
-  { id: 'banner_r_ocean', name: 'Abyss', type: ItemType.BANNER, price: 2200, value: 'bg-gradient-to-b from-blue-900 to-black', description: 'O abismo.', rarity: 'rare' },
-  { id: 'banner_r_royal', name: 'Royal Hall', type: ItemType.BANNER, price: 2500, value: 'bg-gradient-to-r from-purple-900 to-red-900', description: 'Salão real.', rarity: 'rare' },
-  { id: 'banner_r_cyber', name: 'Cyber Grid', type: ItemType.BANNER, price: 2800, value: 'bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800 to-black', description: 'Rede cibernética.', rarity: 'rare' },
-  { id: 'banner_r_sunrise', name: 'Sunrise', type: ItemType.BANNER, price: 3000, value: 'bg-gradient-to-t from-orange-500 to-blue-400', description: 'Nascer do sol.', rarity: 'rare' },
-  { id: 'banner_r_toxic', name: 'Wasteland', type: ItemType.BANNER, price: 3200, value: 'bg-gradient-to-r from-green-900 to-yellow-900', description: 'Terra devastada.', rarity: 'rare' },
-  { id: 'banner_r_candy', name: 'Candy Land', type: ItemType.BANNER, price: 3500, value: 'bg-gradient-to-r from-pink-300 to-blue-300', description: 'Terra dos doces.', rarity: 'rare' },
-  { id: 'banner_r_gold', name: 'Gold Bullion', type: ItemType.BANNER, price: 4000, value: 'bg-gradient-to-b from-yellow-600 to-yellow-800', description: 'Barra de ouro.', rarity: 'rare' },
+  // RARE
+  { id: 'title_r_ace', name: 'ACE Machine', type: ItemType.TITLE, price: 2000, value: '💥 ACE Machine', description: 'Especialista em Aces.', rarity: 'rare' },
+  { id: 'title_r_mvp', name: 'Eterno MVP', type: ItemType.TITLE, price: 2500, value: '⭐ Eterno MVP', description: 'Sempre o melhor.', rarity: 'rare' },
+  { id: 'title_r_sherpa', name: 'Sherpa Mestre', type: ItemType.TITLE, price: 3000, value: '🏔️ Sherpa Mestre', description: 'Guia experiente.', rarity: 'rare' },
+  { id: 'title_r_veteran', name: 'Veterano', type: ItemType.TITLE, price: 2800, value: '🎖️ Veterano', description: '1000+ partidas.', rarity: 'rare' },
+  { id: 'title_r_mentor', name: 'Mentor', type: ItemType.TITLE, price: 3200, value: '📚 Mentor', description: 'Ensina a arte do jogo.', rarity: 'rare' },
 
-  // EPIC (10)
-  { id: 'banner_e_vaporwave', name: 'Vaporwave', type: ItemType.BANNER, price: 5000, value: 'bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500', description: 'Estética vaporwave.', rarity: 'epic' },
-  { id: 'banner_e_synthwave', name: 'Synthwave', type: ItemType.BANNER, price: 5500, value: 'bg-gradient-to-b from-purple-900 via-pink-800 to-yellow-600', description: 'Retrofuturismo.', rarity: 'epic' },
-  { id: 'banner_e_northern', name: 'Northern Lights', type: ItemType.BANNER, price: 6000, value: 'bg-gradient-to-tr from-green-400 via-blue-500 to-purple-600', description: 'Aurora.', rarity: 'epic' },
-  { id: 'banner_e_galaxy', name: 'Galaxy', type: ItemType.BANNER, price: 6500, value: 'bg-gradient-to-br from-gray-900 via-purple-900 to-violet-600', description: 'Espaço profundo.', rarity: 'epic' },
-  { id: 'banner_e_fire', name: 'Inferno', type: ItemType.BANNER, price: 7000, value: 'bg-gradient-to-t from-yellow-500 via-red-500 to-black', description: 'Inferno.', rarity: 'epic' },
-  { id: 'banner_e_ice', name: 'Glacier', type: ItemType.BANNER, price: 7500, value: 'bg-gradient-to-b from-white via-cyan-200 to-blue-500', description: 'Geleira.', rarity: 'epic' },
-  { id: 'banner_e_magic', name: 'Arcane', type: ItemType.BANNER, price: 8000, value: 'bg-gradient-to-bl from-fuchsia-600 via-purple-600 to-pink-600', description: 'Magia arcana.', rarity: 'epic' },
-  { id: 'banner_e_jungle', name: 'Amazon', type: ItemType.BANNER, price: 8500, value: 'bg-gradient-to-tr from-emerald-900 via-green-600 to-lime-500', description: 'Selva.', rarity: 'epic' },
-  { id: 'banner_e_desert', name: 'Sahara', type: ItemType.BANNER, price: 9000, value: 'bg-gradient-to-tl from-orange-500 via-yellow-500 to-red-500', description: 'Deserto.', rarity: 'epic' },
-  { id: 'banner_e_void', name: 'The Void', type: ItemType.BANNER, price: 9500, value: 'bg-gradient-to-br from-black via-purple-950 to-black', description: 'O vazio.', rarity: 'epic' },
+  // EPIC
+  { id: 'title_e_radiant', name: 'Radiant', type: ItemType.TITLE, price: 5000, value: '✨ Radiant', description: 'Top 500 energy.', rarity: 'epic' },
+  { id: 'title_e_global', name: 'Global Elite', type: ItemType.TITLE, price: 5500, value: '🌐 Global Elite', description: 'O topo do CS.', rarity: 'epic' },
+  { id: 'title_e_challenger', name: 'Challenger', type: ItemType.TITLE, price: 6000, value: '🔥 Challenger', description: 'Liga dos melhores.', rarity: 'epic' },
+  { id: 'title_e_demon', name: 'Demon Mode', type: ItemType.TITLE, price: 7000, value: '😈 Demon Mode', description: 'Incontrolável.', rarity: 'epic' },
+  { id: 'title_e_goat', name: 'G.O.A.T', type: ItemType.TITLE, price: 8000, value: '🐐 G.O.A.T', description: 'Greatest Of All Time.', rarity: 'epic' },
 
-  // LEGENDARY (10)
-  { id: 'banner_l_rainbow', name: 'Rainbow Flow', type: ItemType.BANNER, price: 15000, value: 'bg-gradient-to-r from-red-500 via-green-500 to-blue-500', description: 'Fluxo de arco-íris.', rarity: 'legendary' },
-  { id: 'banner_l_hologram', name: 'Hologram', type: ItemType.BANNER, price: 18000, value: 'bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 opacity-80', description: 'Holograma.', rarity: 'legendary' },
-  { id: 'banner_l_gold_rush', name: 'Midas Kingdom', type: ItemType.BANNER, price: 20000, value: 'bg-gradient-to-br from-yellow-200 via-yellow-500 to-yellow-800', description: 'Reino dourado.', rarity: 'legendary' },
-  { id: 'banner_l_nebula', name: 'Nebula Cloud', type: ItemType.BANNER, price: 25000, value: 'bg-gradient-to-tr from-pink-500 via-red-500 to-yellow-500', description: 'Nebulosa.', rarity: 'legendary' },
-  { id: 'banner_l_cyberpunk', name: 'Night City', type: ItemType.BANNER, price: 30000, value: 'bg-gradient-to-r from-yellow-400 via-pink-500 to-cyan-500', description: 'Cidade noturna.', rarity: 'legendary' },
-  { id: 'banner_l_plasma', name: 'Plasma Storm', type: ItemType.BANNER, price: 35000, value: 'bg-gradient-to-bl from-indigo-500 via-purple-500 to-pink-500', description: 'Tempestade de plasma.', rarity: 'legendary' },
-  { id: 'banner_l_matrix', name: 'System Core', type: ItemType.BANNER, price: 40000, value: 'bg-gradient-to-b from-black via-green-900 to-black', description: 'Núcleo do sistema.', rarity: 'legendary' },
-  { id: 'banner_l_divine', name: 'Heaven', type: ItemType.BANNER, price: 45000, value: 'bg-gradient-to-b from-blue-200 via-white to-blue-200', description: 'Paraíso.', rarity: 'legendary' },
-  { id: 'banner_l_hell', name: 'Underworld', type: ItemType.BANNER, price: 48000, value: 'bg-gradient-to-t from-red-900 via-black to-red-900', description: 'Submundo.', rarity: 'legendary' },
-  { id: 'banner_l_gm', name: 'Developer', type: ItemType.BANNER, price: 50000, value: 'bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 border-2 border-white/20', description: 'Acesso de desenvolvedor.', rarity: 'legendary' }
+  // LEGENDARY
+  { id: 'title_l_s1mple', name: 'The GOAT', type: ItemType.TITLE, price: 15000, value: '👑 The GOAT', description: 'Lenda viva.', rarity: 'legendary' },
+  { id: 'title_l_god', name: 'Gaming God', type: ItemType.TITLE, price: 25000, value: '⚡ Gaming God', description: 'Divindade dos games.', rarity: 'legendary' },
+  { id: 'title_l_myth', name: 'Mito', type: ItemType.TITLE, price: 30000, value: '🏆 Mito', description: 'Lenda do servidor.', rarity: 'legendary' },
+  { id: 'title_l_untouchable', name: 'Intocável', type: ItemType.TITLE, price: 40000, value: '💎 Intocável', description: 'Nunca foi banido.', rarity: 'legendary' },
+  { id: 'title_l_founder', name: 'Founder', type: ItemType.TITLE, price: 50000, value: '🚀 Founder', description: 'Primeiros 100 usuários.', rarity: 'legendary' },
+
+  // ================= EMOTES =================
+  // Emotes para usar no chat/lobby (URLs verificadas BetterTTV/FFZ)
+
+  // COMMON
+  { id: 'emote_c_gg', name: 'catJAM', type: ItemType.EMOTE, price: 100, value: 'https://cdn.betterttv.net/emote/5f1b0186cf6d2144653d2970/2x.webp', description: 'Gatinho dançando.', rarity: 'common' },
+  { id: 'emote_c_gl', name: 'peepoHappy', type: ItemType.EMOTE, price: 100, value: 'https://cdn.betterttv.net/emote/5a16ee718c22a247ead62d4a/2x.webp', description: 'Feliz e fofo.', rarity: 'common' },
+  { id: 'emote_c_thumbsup', name: 'Okayge', type: ItemType.EMOTE, price: 150, value: 'https://cdn.betterttv.net/emote/5e3543bfe4bd2f1770fb45ac/2x.webp', description: 'Tudo certo!', rarity: 'common' },
+  { id: 'emote_c_fire', name: 'POGGERS', type: ItemType.EMOTE, price: 200, value: 'https://cdn.betterttv.net/emote/58ae8407ff7b7276f8e594f2/2x.webp', description: 'Momento épico!', rarity: 'common' },
+
+  // UNCOMMON
+  { id: 'emote_u_clutch', name: 'EZ', type: ItemType.EMOTE, price: 500, value: 'https://cdn.betterttv.net/emote/5590b223b344e2c42a9e28e3/2x.webp', description: 'Fácil demais.', rarity: 'uncommon' },
+  { id: 'emote_u_boom', name: 'Clap', type: ItemType.EMOTE, price: 600, value: 'https://cdn.betterttv.net/emote/55b6f480e66682f576dd94f5/2x.webp', description: 'Aplausos!', rarity: 'uncommon' },
+  { id: 'emote_u_cry', name: 'Sadge', type: ItemType.EMOTE, price: 500, value: 'https://cdn.betterttv.net/emote/5e0fa9d40550d42106b8a489/2x.webp', description: 'Triste...', rarity: 'uncommon' },
+  { id: 'emote_u_laugh', name: 'KEKW', type: ItemType.EMOTE, price: 700, value: 'https://cdn.betterttv.net/emote/5e9c6c187e090362f8b0b9e8/2x.webp', description: 'Risada épica.', rarity: 'uncommon' },
+
+  // RARE
+  { id: 'emote_r_skull', name: 'Deadge', type: ItemType.EMOTE, price: 1500, value: 'https://cdn.betterttv.net/emote/5f56691b68d9d86c020e87e0/2x.webp', description: 'Morto.', rarity: 'rare' },
+  { id: 'emote_r_crown', name: 'monkaW', type: ItemType.EMOTE, price: 2000, value: 'https://cdn.betterttv.net/emote/59ca6551b27c823d5b1f6052/2x.webp', description: 'Nervoso...', rarity: 'rare' },
+  { id: 'emote_r_goat', name: 'PogU', type: ItemType.EMOTE, price: 2500, value: 'https://cdn.betterttv.net/emote/5e4e7a1f08b4447d56a92967/2x.webp', description: 'HYPE máximo!', rarity: 'rare' },
+
+  // EPIC
+  { id: 'emote_e_rainbow', name: 'pepeLaugh', type: ItemType.EMOTE, price: 4000, value: 'https://cdn.betterttv.net/emote/5c548025009a2e73916b3a37/2x.webp', description: 'Sabe de algo...', rarity: 'epic' },
+  { id: 'emote_e_rocket', name: 'Clueless', type: ItemType.EMOTE, price: 5000, value: 'https://cdn.betterttv.net/emote/60419081306b602acc5972c9/2x.webp', description: 'Sem noção.', rarity: 'epic' },
+
+  // LEGENDARY
+  { id: 'emote_l_diamond', name: 'GIGACHAD', type: ItemType.EMOTE, price: 15000, value: 'https://cdn.betterttv.net/emote/609431bc39b5010444d0cbdc/2x.webp', description: 'Chad supremo.', rarity: 'legendary' },
+  { id: 'emote_l_alien', name: 'modCheck', type: ItemType.EMOTE, price: 20000, value: 'https://cdn.betterttv.net/emote/5efe0ba9f0f3e92023f62a55/2x.webp', description: 'Cadê os mods?', rarity: 'legendary' },
+
+
+
+  // ================= ENTRY EFFECTS =================
+  // Efeitos visuais quando o jogador entra no lobby (GIFs animados)
+
+  // UNCOMMON
+  { id: 'entry_u_spark', name: 'Faíscas', type: ItemType.ENTRY_EFFECT, price: 800, value: 'https://media.giphy.com/media/3o7TKSjRrfIPjeiVyM/giphy.gif', description: 'Entrada com faíscas.', rarity: 'uncommon' },
+  { id: 'entry_u_smoke', name: 'Fumaça', type: ItemType.ENTRY_EFFECT, price: 900, value: 'https://media.giphy.com/media/l0HlPtbGpcnqa0FY4/giphy.gif', description: 'Entrada misteriosa.', rarity: 'uncommon' },
+
+  // RARE
+  { id: 'entry_r_fire', name: 'Chamas', type: ItemType.ENTRY_EFFECT, price: 2500, value: 'https://media.giphy.com/media/3o7aD2saalBwwftBIY/giphy.gif', description: 'Entrada flamejante.', rarity: 'rare' },
+  { id: 'entry_r_ice', name: 'Gelo', type: ItemType.ENTRY_EFFECT, price: 2500, value: 'https://media.giphy.com/media/3o6Zt4sLJr5qBC86hG/giphy.gif', description: 'Entrada congelante.', rarity: 'rare' },
+  { id: 'entry_r_thunder', name: 'Trovão', type: ItemType.ENTRY_EFFECT, price: 3000, value: 'https://media.giphy.com/media/3o85xvmwXbeXlqdXGM/giphy.gif', description: 'Entrada elétrica.', rarity: 'rare' },
+
+  // EPIC
+  { id: 'entry_e_portal', name: 'Portal', type: ItemType.ENTRY_EFFECT, price: 6000, value: 'https://media.giphy.com/media/l4FGjNNQaJEMPhkCQ/giphy.gif', description: 'Surge de um portal.', rarity: 'epic' },
+  { id: 'entry_e_glitch', name: 'Glitch', type: ItemType.ENTRY_EFFECT, price: 7000, value: 'https://media.giphy.com/media/26tPo9rksWnfPo4HS/giphy.gif', description: 'Entrada bugada.', rarity: 'epic' },
+  { id: 'entry_e_matrix', name: 'Matrix', type: ItemType.ENTRY_EFFECT, price: 8000, value: 'https://media.giphy.com/media/4TkKzIZg1VJja/giphy.gif', description: 'Código verde.', rarity: 'epic' },
+
+  // LEGENDARY
+  { id: 'entry_l_explosion', name: 'Explosão', type: ItemType.ENTRY_EFFECT, price: 20000, value: 'https://media.giphy.com/media/oe33xf3B50fsc/giphy.gif', description: 'BOOM! Chegou.', rarity: 'legendary' },
+  { id: 'entry_l_rainbow', name: 'Arco-Íris', type: ItemType.ENTRY_EFFECT, price: 25000, value: 'https://media.giphy.com/media/SKGo6OYe24EBG/giphy.gif', description: 'Espectro completo.', rarity: 'legendary' },
+  { id: 'entry_l_divine', name: 'Divino', type: ItemType.ENTRY_EFFECT, price: 40000, value: 'https://media.giphy.com/media/3oz8xNi7HBbpEtg3cc/giphy.gif', description: 'Luz celestial.', rarity: 'legendary' },
+
+
+  // ================= THEMED BUNDLES - CS2 =================
+
+  { id: 'cs2_border_awp', name: 'AWP Dragon Lore', type: ItemType.BORDER, price: 8000, value: 'border-yellow-500 shadow-[0_0_20px_#eab308] border-double', description: 'Inspirado na skin lendária.', rarity: 'epic' },
+  { id: 'cs2_border_knife', name: 'Karambit Fade', type: ItemType.BORDER, price: 12000, value: 'border-transparent bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500 p-[3px]', description: 'Gradiente de faca.', rarity: 'legendary' },
+  { id: 'cs2_title_faceit', name: 'FACEIT 10', type: ItemType.TITLE, price: 5000, value: '🟠 FACEIT 10', description: 'Nível máximo.', rarity: 'epic' },
+  { id: 'cs2_title_major', name: 'Major Winner', type: ItemType.TITLE, price: 15000, value: '🏆 Major Winner', description: 'Campeão de Major.', rarity: 'legendary' },
+  { id: 'cs2_color_ct', name: 'CT Blue', type: ItemType.NAME_COLOR, price: 3000, value: 'text-blue-400 font-bold', description: 'Azul Counter-Terrorist.', rarity: 'rare' },
+  { id: 'cs2_color_t', name: 'T Orange', type: ItemType.NAME_COLOR, price: 3000, value: 'text-orange-400 font-bold', description: 'Laranja Terrorist.', rarity: 'rare' },
+  // Banner items removed
+
+  // ================= THEMED BUNDLES - VALORANT =================
+
+  { id: 'val_border_radiant', name: 'Radiant Glow', type: ItemType.BORDER, price: 10000, value: 'border-yellow-300 shadow-[0_0_25px_#fde047] animate-pulse', description: 'Brilho Radiante.', rarity: 'epic' },
+  { id: 'val_border_reaver', name: 'Reaver', type: ItemType.BORDER, price: 8000, value: 'border-purple-900 shadow-[0_0_15px_#581c87]', description: 'Energia sombria.', rarity: 'epic' },
+  { id: 'val_title_immo', name: 'Immortal', type: ItemType.TITLE, price: 4000, value: '💀 Immortal', description: 'Rank Immortal.', rarity: 'epic' },
+  { id: 'val_title_radiant', name: 'Radiant', type: ItemType.TITLE, price: 12000, value: '👑 Radiant', description: 'Top 500.', rarity: 'legendary' },
+  { id: 'val_color_jett', name: 'Jett Blue', type: ItemType.NAME_COLOR, price: 2500, value: 'text-cyan-300 font-bold', description: 'Azul da Jett.', rarity: 'rare' },
+  { id: 'val_color_reyna', name: 'Reyna Purple', type: ItemType.NAME_COLOR, price: 2500, value: 'text-purple-400 font-bold', description: 'Roxo da Reyna.', rarity: 'rare' },
+  // Banner items removed
+
+  // ================= THEMED BUNDLES - LEAGUE OF LEGENDS =================
+
+  { id: 'lol_border_challenger', name: 'Challenger', type: ItemType.BORDER, price: 15000, value: 'border-cyan-400 shadow-[0_0_30px_#22d3ee] animate-pulse border-double', description: 'Elite do LoL.', rarity: 'legendary' },
+  { id: 'lol_border_grandmaster', name: 'Grandmaster', type: ItemType.BORDER, price: 8000, value: 'border-red-500 shadow-[0_0_15px_#ef4444]', description: 'Quase lá.', rarity: 'epic' },
+  { id: 'lol_title_penta', name: 'PENTAKILL', type: ItemType.TITLE, price: 6000, value: '⚔️ PENTAKILL', description: 'ACE no LoL.', rarity: 'epic' },
+  { id: 'lol_title_otp', name: 'OTP', type: ItemType.TITLE, price: 2000, value: '🎭 OTP', description: 'One Trick Pony.', rarity: 'rare' },
+  { id: 'lol_color_blue', name: 'Blue Side', type: ItemType.NAME_COLOR, price: 2000, value: 'text-blue-500 font-bold', description: 'Lado azul.', rarity: 'rare' },
+  { id: 'lol_color_red', name: 'Red Side', type: ItemType.NAME_COLOR, price: 2000, value: 'text-red-500 font-bold', description: 'Lado vermelho.', rarity: 'rare' }
 ];
 
 export const POSITIVE_TAGS: Tag[] = [
@@ -251,8 +311,141 @@ export const NEGATIVE_TAGS: Tag[] = [
 // CLEANED: No fake matches
 export const MOCK_MATCHES: Match[] = [];
 
-// CLEANED: No fake sherpas
-export const MOCK_SHERPAS: SherpaProfile[] = [];
+// MOCK SHERPAS - Populated with demo data
+export const MOCK_SHERPAS: SherpaProfile[] = [
+  {
+    id: 's1',
+    player: {
+      id: 'u_sherpa_1',
+      username: 'ProCoach_BR',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=procoach',
+      score: 95,
+      badges: ['mentor', 'verified'],
+      coins: 5000,
+      tutorialCompleted: true,
+      inventory: [],
+      equipped: {},
+      stats: { matchesPlayed: 500, mvps: 120, commendations: 450, sherpaSessions: 80, perfectBehaviorStreak: 50 },
+      matchHistory: [],
+      advancedStats: { headshotPct: 45, adr: 180, kast: 75, entrySuccess: 60, clutchSuccess: 35, radar: [], focusAreas: [] },
+      claimedAchievements: []
+    },
+    hourlyRate: 50,
+    rating: 4.9,
+    reviews: 127,
+    specialties: ['Macro Gaming', 'Liderança', 'Controle de Tilt']
+  },
+  {
+    id: 's2',
+    player: {
+      id: 'u_sherpa_2',
+      username: 'AimTrainer',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=aimtrainer',
+      score: 88,
+      badges: ['verified'],
+      coins: 3200,
+      tutorialCompleted: true,
+      inventory: [],
+      equipped: {},
+      stats: { matchesPlayed: 320, mvps: 85, commendations: 280, sherpaSessions: 45, perfectBehaviorStreak: 30 },
+      matchHistory: [],
+      advancedStats: { headshotPct: 55, adr: 200, kast: 70, entrySuccess: 65, clutchSuccess: 40, radar: [], focusAreas: [] },
+      claimedAchievements: []
+    },
+    hourlyRate: 35,
+    rating: 4.7,
+    reviews: 89,
+    specialties: ['Micro / Mecânica', 'FPS Aim', 'Entry Frag']
+  },
+  {
+    id: 's3',
+    player: {
+      id: 'u_sherpa_3',
+      username: 'JungleMaster',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=junglemaster',
+      score: 92,
+      badges: ['mentor', 'champion'],
+      coins: 4100,
+      tutorialCompleted: true,
+      inventory: [],
+      equipped: {},
+      stats: { matchesPlayed: 410, mvps: 95, commendations: 340, sherpaSessions: 62, perfectBehaviorStreak: 40 },
+      matchHistory: [],
+      advancedStats: { headshotPct: 38, adr: 160, kast: 80, entrySuccess: 55, clutchSuccess: 30, radar: [], focusAreas: [] },
+      claimedAchievements: []
+    },
+    hourlyRate: 40,
+    rating: 4.8,
+    reviews: 103,
+    specialties: ['Jungle Pathing', 'Macro Gaming', 'Suporte']
+  },
+  {
+    id: 's4',
+    player: {
+      id: 'u_sherpa_4',
+      username: 'ZenPlayer',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=zenplayer',
+      score: 99,
+      badges: ['zen', 'mentor', 'verified'],
+      coins: 6500,
+      tutorialCompleted: true,
+      inventory: [],
+      equipped: {},
+      stats: { matchesPlayed: 600, mvps: 140, commendations: 580, sherpaSessions: 110, perfectBehaviorStreak: 80 },
+      matchHistory: [],
+      advancedStats: { headshotPct: 42, adr: 170, kast: 82, entrySuccess: 58, clutchSuccess: 38, radar: [], focusAreas: [] },
+      claimedAchievements: []
+    },
+    hourlyRate: 60,
+    rating: 5.0,
+    reviews: 156,
+    specialties: ['Controle de Tilt', 'Liderança', 'Comunicação']
+  },
+  {
+    id: 's5',
+    player: {
+      id: 'u_sherpa_5',
+      username: 'SupportKing',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=supportking',
+      score: 85,
+      badges: ['helper'],
+      coins: 2800,
+      tutorialCompleted: true,
+      inventory: [],
+      equipped: {},
+      stats: { matchesPlayed: 280, mvps: 45, commendations: 320, sherpaSessions: 35, perfectBehaviorStreak: 25 },
+      matchHistory: [],
+      advancedStats: { headshotPct: 30, adr: 140, kast: 85, entrySuccess: 40, clutchSuccess: 25, radar: [], focusAreas: [] },
+      claimedAchievements: []
+    },
+    hourlyRate: 25,
+    rating: 4.6,
+    reviews: 67,
+    specialties: ['Suporte', 'Comunicação', 'Macro Gaming']
+  },
+  {
+    id: 's6',
+    player: {
+      id: 'u_sherpa_6',
+      username: 'ClutchGod',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=clutchgod',
+      score: 90,
+      badges: ['clutch', 'verified'],
+      coins: 3800,
+      tutorialCompleted: true,
+      inventory: [],
+      equipped: {},
+      stats: { matchesPlayed: 380, mvps: 110, commendations: 290, sherpaSessions: 48, perfectBehaviorStreak: 35 },
+      matchHistory: [],
+      advancedStats: { headshotPct: 48, adr: 190, kast: 72, entrySuccess: 62, clutchSuccess: 55, radar: [], focusAreas: [] },
+      claimedAchievements: []
+    },
+    hourlyRate: 45,
+    rating: 4.8,
+    reviews: 94,
+    specialties: ['Clutch', 'Micro / Mecânica', 'FPS Aim']
+  }
+];
 
 export const RADAR_DATA = [
   { subject: 'Liderança', A: 90, fullMark: 100 },
