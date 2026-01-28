@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { X, Lock, CheckCircle, Loader2, ExternalLink, ShieldCheck, Coins, Copy } from 'lucide-react';
+import { X, Lock, CheckCircle, Loader2, ExternalLink, ShieldCheck, Coins, Copy, Terminal, Shield } from 'lucide-react';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 
@@ -13,10 +14,10 @@ interface PaymentModalProps {
 }
 
 const COIN_PACKS = [
-    { coins: 100, price: 4.90, label: 'Punhado de Moedas' },
-    { coins: 500, price: 14.90, label: 'Bolsa de Moedas', popular: true },
-    { coins: 1000, price: 25.00, label: 'Baú de Moedas', bestValue: true },
-    { coins: 2500, price: 55.00, label: 'Cofre de Moedas' },
+    { coins: 100, price: 4.90, label: 'PUNHADO_DE_COINS' },
+    { coins: 500, price: 14.90, label: 'BOLSA_DE_COINS', popular: true },
+    { coins: 1000, price: 25.00, label: 'BAU_DE_COINS', bestValue: true },
+    { coins: 2500, price: 55.00, label: 'COFRE_DE_COINS' },
 ];
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess, itemTitle, price, type }) => {
@@ -35,8 +36,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
             setPaymentUrl('');
             setPixData(null);
             setIsChecking(false);
-
-            // Se for compra de moedas, seleciona o pacote padrão (1000) ou reseta
             if (type === 'COINS') {
                 const defaultPack = COIN_PACKS.find(p => p.coins === 1000);
                 setSelectedPack(defaultPack || COIN_PACKS[2]);
@@ -44,70 +43,35 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
         }
     }, [isOpen]);
 
-    // --- LISTEN FOR PAYMENT SUCCESS (Realtime) ---
     useEffect(() => {
         if (!isOpen) return;
-
         const checkUser = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-
             const channel = supabase.channel('payment_listener')
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'UPDATE',
-                        schema: 'public',
-                        table: 'profiles',
-                        filter: `id=eq.${user.id}`
-                    },
-                    (payload) => {
-                        const newProfile = payload.new as any;
-                        const oldProfile = payload.old as any;
-
-                        if (newProfile.coins > oldProfile.coins || (newProfile.is_premium && !oldProfile.is_premium)) {
-                            setStatus('success');
-                            setTimeout(() => {
-                                onSuccess();
-                            }, 2000);
-                        }
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
+                    const newProfile = payload.new as any;
+                    const oldProfile = payload.old as any;
+                    if (newProfile.coins > oldProfile.coins || (newProfile.is_premium && !oldProfile.is_premium)) {
+                        setStatus('success');
+                        setTimeout(() => onSuccess(), 2000);
                     }
-                )
-                .subscribe();
-
-            return () => {
-                supabase.removeChannel(channel);
-            };
+                }
+                ).subscribe();
+            return () => { supabase.removeChannel(channel); };
         };
-
         checkUser();
     }, [isOpen, onSuccess]);
 
-    // --- POLLING FALLBACK (Verificação Automática) ---
     useEffect(() => {
         if ((status !== 'pix_display' && status !== 'redirecting') || !isOpen) return;
-
         const checkPayment = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-
-            // Verifica se existe uma transação aprovada nos últimos 10 minutos
-            const { data: recentTx } = await supabase.from('transactions')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('status', 'approved')
-                .gt('created_at', new Date(Date.now() - 10 * 60 * 1000).toISOString())
-                .maybeSingle();
-
-            if (recentTx) {
-                setStatus('success');
-                setTimeout(() => {
-                    onSuccess();
-                }, 2000);
-            }
+            const { data: recentTx } = await supabase.from('transactions').select('id').eq('user_id', user.id).eq('status', 'approved').gt('created_at', new Date(Date.now() - 10 * 60 * 1000).toISOString()).maybeSingle();
+            if (recentTx) { setStatus('success'); setTimeout(() => onSuccess(), 2000); }
         };
-
-        const interval = setInterval(checkPayment, 5000); // Verifica a cada 5 segundos
+        const interval = setInterval(checkPayment, 5000);
         return () => clearInterval(interval);
     }, [status, isOpen, onSuccess]);
 
@@ -115,230 +79,155 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess,
         setIsChecking(true);
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-            const { data: recentTx } = await supabase.from('transactions')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('status', 'approved')
-                .gt('created_at', new Date(Date.now() - 15 * 60 * 1000).toISOString())
-                .maybeSingle();
-
-            if (recentTx) {
-                setStatus('success');
-                setTimeout(() => onSuccess(), 2000);
-            }
+            const { data: recentTx } = await supabase.from('transactions').select('id').eq('user_id', user.id).eq('status', 'approved').gt('created_at', new Date(Date.now() - 15 * 60 * 1000).toISOString()).maybeSingle();
+            if (recentTx) { setStatus('success'); setTimeout(() => onSuccess(), 2000); }
         }
         setTimeout(() => setIsChecking(false), 2000);
     };
 
     const handleMercadoPagoCheckout = async (method: 'ALL' | 'PIX' = 'ALL') => {
         setStatus('loading');
-        setErrorMessage('');
-
-        const { data: { user } } = await supabase.auth.getUser(); // Pega o usuário atual
+        const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-
         const finalTitle = type === 'COINS' && selectedPack ? `${selectedPack.coins} CarryCoins` : itemTitle;
         const finalPrice = type === 'COINS' && selectedPack ? selectedPack.price : price;
-
-        // Call Backend
         const data = await api.createMercadoPagoPreference(user.id, user.email || 'user@carryme.gg', finalTitle, finalPrice, method);
-
         if (data) {
-            if (data.type === 'PIX_DIRECT') {
-                setPixData(data);
-                setStatus('pix_display');
-            } else if (data.init_point) {
-                setPaymentUrl(data.init_point);
-                setStatus('redirecting');
-                window.open(data.init_point, '_blank');
-            }
-        } else {
-            setStatus('error');
-            setErrorMessage("Não foi possível conectar ao Mercado Pago. Verifique se o Access Token está configurado corretamente na Edge Function.");
-        }
-    };
-
-    const handleCopyPix = () => {
-        if (pixData?.qr_code) {
-            navigator.clipboard.writeText(pixData.qr_code);
-            setCopiedPix(true);
-            setTimeout(() => setCopiedPix(false), 2000);
-        }
+            if (data.type === 'PIX_DIRECT') { setPixData(data); setStatus('pix_display'); }
+            else if (data.init_point) { setPaymentUrl(data.init_point); setStatus('redirecting'); window.open(data.init_point, '_blank'); }
+        } else { setStatus('error'); setErrorMessage("Erro ao conectar ao Mercado Pago."); }
     };
 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-[#0f172a] border border-slate-800 rounded-3xl max-w-md w-full shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
-
-                {/* Close Button */}
-                <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full z-20 transition-all backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-[#121417] border border-white/10 rounded-sm max-w-md w-full shadow-2xl relative overflow-hidden noise-bg">
+                <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/5 hover:bg-white/10 text-white rounded-sm z-20 transition-all">
                     <X size={20} />
                 </button>
 
-                {/* Header Image / Gradient */}
-                <div className="h-32 bg-gradient-to-br from-blue-600 to-purple-700 relative overflow-hidden flex items-center justify-center">
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
-                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0f172a] to-transparent"></div>
-
-                    <div className="relative z-10 text-center transform translate-y-2">
-                        <div className="w-16 h-16 bg-white rounded-2xl shadow-xl mx-auto flex items-center justify-center mb-2 rotate-3">
-                            <img src="https://img.icons8.com/color/96/mercado-pago.png" alt="MP" className="w-10 h-10" />
+                <div className="h-40 bg-black/40 relative flex items-center justify-center border-b border-white/5 overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><Shield size={120} /></div>
+                    <div className="relative z-10 flex flex-col items-center">
+                        <div className="w-20 h-20 bg-[#ffb800] rounded-sm flex items-center justify-center shadow-2xl border border-black/20">
+                            <img src="https://img.icons8.com/color/96/mercado-pago.png" alt="MP" className="w-12 h-12 grayscale contrast-125" />
                         </div>
+                        <div className="mt-4 text-[10px] font-mono font-black text-[#ffb800] uppercase tracking-[0.4em]">CHECKOUT_SEGURO</div>
                     </div>
                 </div>
 
-                <div className="px-8 pb-8 pt-4 text-center">
-                    <h2 className="text-2xl font-bold text-white mb-1">{type === 'COINS' && selectedPack ? `${selectedPack.coins} CarryCoins` : itemTitle}</h2>
-                    <p className="text-slate-400 text-sm mb-6">Finalize sua compra com segurança.</p>
+                <div className="p-10 text-center">
+                    <h2 className="text-2xl font-tactical font-black text-white mb-2 uppercase italic tracking-tighter">
+                        {type === 'COINS' && selectedPack ? `${selectedPack.coins} CARRY_COINS` : itemTitle}
+                    </h2>
+                    <p className="text-[10px] font-mono font-bold text-slate-700 mb-10 uppercase tracking-widest">AUTORIZACAO_REQUERIDA // MP_GATEWAY</p>
 
-                    <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800 mb-8 flex justify-between items-center">
+                    <div className="bg-black/40 rounded-sm p-6 border border-white/5 mb-10 flex justify-between items-center shadow-inner">
                         <div className="text-left">
-                            <p className="text-xs text-slate-500 uppercase font-bold">Total a Pagar</p>
-                            <p className="text-2xl font-mono font-bold text-white">R$ {(type === 'COINS' && selectedPack ? selectedPack.price : price).toFixed(2).replace('.', ',')}</p>
+                            <p className="text-[8px] font-mono font-black text-slate-700 uppercase tracking-widest mb-1">MONANTE_TOTAL</p>
+                            <p className="text-3xl font-mono font-black text-[#ffb800]">R$ {(type === 'COINS' && selectedPack ? selectedPack.price : price).toFixed(2)}</p>
                         </div>
-                        <div className="bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
-                            <span className="text-xs font-bold text-green-400 flex items-center gap-1">
-                                <ShieldCheck size={12} /> Seguro
+                        <div className="bg-[#ffb800]/5 px-3 py-1.5 rounded-sm border border-[#ffb800]/20">
+                            <span className="text-[9px] font-mono font-black text-[#ffb800] flex items-center gap-2 uppercase tracking-widest">
+                                <ShieldCheck size={12} /> ENCRYPTED
                             </span>
                         </div>
                     </div>
 
-                    {/* COIN SELECTION GRID */}
                     {type === 'COINS' && status === 'idle' && (
-                        <div className="grid grid-cols-2 gap-3 mb-6">
+                        <div className="grid grid-cols-2 gap-4 mb-8">
                             {COIN_PACKS.map(pack => (
                                 <button
                                     key={pack.coins}
                                     onClick={() => setSelectedPack(pack)}
-                                    className={`p-3 rounded-xl border text-left transition-all relative ${selectedPack?.coins === pack.coins ? 'bg-blue-600/20 border-blue-500 ring-1 ring-blue-500' : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'}`}
+                                    className={`p-4 rounded-sm border text-left transition-all relative ${selectedPack?.coins === pack.coins ? 'bg-[#ffb800]/10 border-[#ffb800] shadow-[0_0_20px_rgba(255,184,0,0.05)]' : 'bg-black/40 border-white/5 hover:border-white/10'}`}
                                 >
-                                    {pack.popular && <span className="absolute -top-2 -right-2 bg-yellow-500 text-black text-[9px] font-bold px-2 py-0.5 rounded-full">POPULAR</span>}
-                                    {pack.bestValue && <span className="absolute -top-2 -right-2 bg-green-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">MELHOR</span>}
-
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Coins size={14} className="text-yellow-500" />
-                                        <span className="font-bold text-white text-sm">{pack.coins}</span>
+                                    {pack.popular && <span className="absolute -top-2 -right-2 bg-[#ffb800] text-black text-[8px] font-mono font-black px-2 py-0.5 rounded-sm">POPULAR</span>}
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <Coins size={14} className="text-[#ffb800]" />
+                                        <span className="font-mono font-black text-white text-sm tracking-widest uppercase">{pack.coins}</span>
                                     </div>
-                                    <div className="text-xs text-slate-400">R$ {pack.price.toFixed(2).replace('.', ',')}</div>
+                                    <div className="text-[9px] font-mono font-bold text-slate-600 uppercase tracking-widest">R$ {pack.price.toFixed(2)}</div>
                                 </button>
                             ))}
                         </div>
                     )}
 
                     {status === 'idle' && (
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             <button
                                 onClick={() => handleMercadoPagoCheckout('ALL')}
-                                className="w-full py-4 bg-[#009EE3] hover:bg-[#008CC9] text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-3 group relative overflow-hidden"
+                                className="w-full py-5 bg-[#ffb800] hover:bg-[#ffc933] text-black font-tactical font-black text-lg uppercase italic tracking-widest rounded-sm transition-all shadow-2xl active:scale-95 flex items-center justify-center gap-4"
                             >
-                                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                                <span className="relative z-10 flex items-center gap-2">
-                                    Pagar com Mercado Pago <ExternalLink size={18} />
-                                </span>
+                                <ExternalLink size={20} /> ENVIAR_PARA_CHECKOUT
                             </button>
 
                             <button
                                 onClick={() => handleMercadoPagoCheckout('PIX')}
-                                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+                                className="w-full py-4 bg-white/5 hover:bg-white/10 text-white font-mono font-black text-[10px] uppercase tracking-[0.3em] rounded-sm transition-all flex items-center justify-center gap-4 border border-white/10"
                             >
-                                <img src="https://img.icons8.com/color/48/pix.png" className="w-5 h-5" alt="Pix" />
-                                Pagar via Pix (Instantâneo)
+                                <img src="https://img.icons8.com/color/48/pix.png" className="w-5 h-5 grayscale" alt="Pix" />
+                                SOLICITAR_QR_PIX
                             </button>
-                            <p className="text-[10px] text-slate-500">
-                                Aceitamos Pix, Cartão de Crédito e Débito.
-                            </p>
                         </div>
                     )}
 
                     {status === 'loading' && (
-                        <div className="py-4">
-                            <Loader2 className="w-10 h-10 text-blue-500 animate-spin mx-auto mb-3" />
-                            <p className="text-slate-300 font-medium">Gerando link de pagamento...</p>
-                        </div>
-                    )}
-
-                    {status === 'redirecting' && (
-                        <div className="py-4">
-                            <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-3 animate-ping">
-                                <ExternalLink className="text-white" size={20} />
-                            </div>
-                            <p className="text-slate-300 font-medium">Pagamento aberto em nova aba...</p>
-                            <p className="text-xs text-slate-500 mt-2 mb-2">Aguardando confirmação automática.</p>
-                            {paymentUrl && (
-                                <a href={paymentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 text-xs hover:text-blue-300 underline">
-                                    Clique aqui se a janela não abriu
-                                </a>
-                            )}
+                        <div className="py-10">
+                            <div className="w-12 h-12 border-2 border-white/5 border-t-[#ffb800] rounded-full animate-spin mx-auto mb-6"></div>
+                            <p className="text-[10px] font-mono font-black text-slate-700 uppercase tracking-[0.4em]">GERANDO_PROTOCOLO...</p>
                         </div>
                     )}
 
                     {status === 'pix_display' && pixData && (
-                        <div className="py-4 animate-in zoom-in">
-                            <h3 className="text-lg font-bold text-white mb-2">Escaneie o QR Code</h3>
-                            <p className="text-xs text-slate-400 mb-4">Abra o app do seu banco e pague via Pix.</p>
+                        <div className="py-6 animate-in zoom-in">
+                            <h3 className="text-xl font-tactical font-black text-white mb-2 uppercase italic tracking-tighter">IDENTIFICACAO_PIX</h3>
+                            <p className="text-[10px] font-mono font-bold text-slate-700 mb-8 uppercase tracking-widest">ESCANEIE_PARA_CONCLUIR</p>
 
-                            <div className="bg-white p-2 rounded-xl w-48 h-48 mx-auto mb-4">
-                                <img src={`data:image/png;base64,${pixData.qr_code_base64}`} alt="QR Code Pix" className="w-full h-full" />
+                            <div className="bg-white p-3 rounded-sm w-48 h-48 mx-auto mb-8 shadow-[0_0_50px_rgba(255,255,255,0.05)]">
+                                <img src={`data:image/png;base64,${pixData.qr_code_base64}`} alt="QR" className="w-full h-full" />
                             </div>
 
-                            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center gap-2 mb-4">
-                                <input
-                                    type="text"
-                                    readOnly
-                                    value={pixData.qr_code}
-                                    className="bg-transparent text-xs text-slate-500 flex-1 outline-none truncate"
-                                />
-                                <button onClick={handleCopyPix} className="text-blue-400 hover:text-white transition-colors">
-                                    {copiedPix ? <CheckCircle size={16} /> : <Copy size={16} />}
+                            <div className="bg-black/60 p-4 rounded-sm border border-white/5 flex items-center gap-4 mb-8">
+                                <input type="text" readOnly value={pixData.qr_code} className="bg-transparent text-[10px] font-mono font-black text-slate-600 flex-1 outline-none truncate uppercase tracking-widest" />
+                                <button onClick={handleCopyPix} className="text-[#ffb800] hover:text-[#ffc933] transition-colors p-1">
+                                    {copiedPix ? <CheckCircle size={18} /> : <Copy size={18} />}
                                 </button>
                             </div>
 
-                            <div className="flex items-center justify-center gap-2 text-xs text-yellow-500 animate-pulse mb-4">
-                                <Loader2 size={12} className="animate-spin" /> Aguardando pagamento...
-                            </div>
-
-                            <button
-                                onClick={handleManualCheck}
-                                disabled={isChecking}
-                                className="text-xs text-blue-400 hover:text-blue-300 underline disabled:opacity-50 w-full text-center"
-                            >
-                                {isChecking ? 'Verificando...' : 'Já paguei, verificar agora'}
+                            <button onClick={handleManualCheck} disabled={isChecking} className="text-[9px] font-mono font-black text-[#ffb800] uppercase tracking-[0.4em] hover:text-[#ffc933] transition-all flex items-center justify-center gap-3 w-full">
+                                {isChecking ? <><Loader2 size={12} className="animate-spin" /> VERIFICANDO</> : 'JA_PAGUEI_VERIFICAR'}
                             </button>
                         </div>
                     )}
 
                     {status === 'success' && (
-                        <div className="py-4 animate-in zoom-in">
-                            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/30">
-                                <CheckCircle className="w-8 h-8 text-white" />
+                        <div className="py-10 animate-in zoom-in">
+                            <div className="w-20 h-20 bg-green-500/10 rounded-sm flex items-center justify-center mx-auto mb-8 border border-green-500/20 shadow-[0_0_40px_rgba(0,255,0,0.1)]">
+                                <CheckCircle size={40} className="text-green-500" />
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-1">Pagamento Confirmado!</h3>
-                            <p className="text-slate-400 text-sm">Suas moedas foram adicionadas.</p>
+                            <h3 className="text-2xl font-tactical font-black text-white mb-2 uppercase italic tracking-tighter">TRANSACAO_AUTORIZADA</h3>
+                            <p className="text-[10px] font-mono font-black text-slate-700 uppercase tracking-widest">CREDITO_DISPONIBILIZADO_IMEDIATAMENTE</p>
                         </div>
                     )}
 
                     {status === 'error' && (
-                        <div className="py-4 animate-in shake">
-                            <div className="text-red-400 bg-red-400/10 p-4 rounded-xl border border-red-400/20 text-sm mb-4">
+                        <div className="py-10 animate-in shake">
+                            <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-sm text-[10px] font-mono font-black text-red-500 uppercase tracking-widest mb-6">
                                 {errorMessage}
                             </div>
-                            <button
-                                onClick={() => setStatus('idle')}
-                                className="text-slate-400 hover:text-white text-sm underline"
-                            >
-                                Tentar Novamente
+                            <button onClick={() => setStatus('idle')} className="text-slate-800 hover:text-white text-[10px] font-mono font-black uppercase tracking-[0.4em] transition-colors underline">
+                                RETENTAR_SISTEMA
                             </button>
                         </div>
                     )}
                 </div>
 
-                {/* Footer Trust Badges */}
-                <div className="bg-slate-950 p-4 border-t border-slate-800 flex justify-center gap-4 opacity-50 grayscale hover:grayscale-0 transition-all">
+                <div className="bg-black/60 p-6 border-t border-white/5 flex justify-center gap-8 opacity-20 hover:opacity-100 transition-all grayscale contrast-150">
                     <img src="https://img.icons8.com/color/48/pix.png" className="h-6" alt="Pix" />
-                    <img src="https://img.icons8.com/color/48/mastercard.png" className="h-6" alt="Mastercard" />
-                    <img src="https://img.icons8.com/color/48/visa.png" className="h-6" alt="Visa" />
+                    <img src="https://img.icons8.com/color/48/mastercard.png" className="h-6" alt="MC" />
+                    <img src="https://img.icons8.com/color/48/visa.png" className="h-6" alt="V" />
                 </div>
             </div>
         </div>

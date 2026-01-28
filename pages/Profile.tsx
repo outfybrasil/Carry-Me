@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { STORE_ITEMS } from '../constants';
 import ScoreGauge from '../components/ScoreGauge';
-import { Paintbrush, Check, X, Upload, TrendingUp, Lock, Crown, Crosshair, Target, Shield, Activity, Zap, Brain, MessageSquare, Share2, Camera } from 'lucide-react';
+import { Paintbrush, Check, X, Upload, TrendingUp, Lock, Crown, Crosshair, Target, Shield, Activity, Zap, Brain, MessageSquare, Share2, Camera, Terminal, Cpu } from 'lucide-react';
 import { Player, ItemType, Clan } from '../types';
 import { api } from '../services/api';
 import ClanCreationModal from '../components/clans/ClanCreationModal';
@@ -15,19 +15,13 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend
+  Tooltip
 } from 'recharts';
 
 interface ProfileProps {
   user: Player;
   onEquip: (type: 'border' | 'nameColor' | 'banner' | 'title' | 'entryEffect', itemId: string) => void;
-  onProfileUpdate?: () => void; // New prop for tutorial
+  onProfileUpdate?: () => void;
   onUpgrade: () => void;
 }
 
@@ -39,24 +33,10 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate, onUpg
   const [newAvatarUrl, setNewAvatarUrl] = useState('');
   const [updating, setUpdating] = useState(false);
 
-
-  // Helper to find item details
   const getEquippedItem = (itemId?: string) => STORE_ITEMS.find(i => i.id === itemId);
 
-
-  // =================================================================================================
-  //                                  INVENTORY & CUSTOMIZATION
-  // =================================================================================================
-
-  // Inventory Filtering (Real Data Only)
   const ownedBorders = STORE_ITEMS.filter(i => user.inventory.includes(i.id) && i.type === ItemType.BORDER);
   const ownedColors = STORE_ITEMS.filter(i => user.inventory.includes(i.id) && i.type === ItemType.NAME_COLOR);
-
-  const activeBorder = getEquippedItem(user.equipped.border);
-  const activeColor = getEquippedItem(user.equipped.nameColor);
-  const activeTitle = getEquippedItem(user.equipped.title);
-
-  // New Inventory Filters
   const ownedTitles = STORE_ITEMS.filter(i => user.inventory.includes(i.id) && i.type === ItemType.TITLE);
   const ownedEffects = STORE_ITEMS.filter(i => user.inventory.includes(i.id) && i.type === ItemType.ENTRY_EFFECT);
 
@@ -65,7 +45,7 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate, onUpg
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      if (file.size > 2 * 1024 * 1024) {
         alert("A imagem deve ter no máximo 2MB.");
         return;
       }
@@ -84,7 +64,6 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate, onUpg
       const success = await api.updateAvatar(user.id, newAvatarUrl);
       if (success) {
         setIsAvatarModalOpen(false);
-        // Trigger tutorial callback if provided. This updates Parent state.
         if (onProfileUpdate) onProfileUpdate();
       } else {
         alert("Erro ao atualizar avatar. Tente uma imagem menor.");
@@ -97,11 +76,10 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate, onUpg
     }
   };
 
-  // Helper for Focus Area icons
   const getFocusIcon = (title: string) => {
     if (title.includes('Recuo') || title.includes('Aim')) return <Crosshair size={16} />;
     if (title.includes('Flash') || title.includes('Util')) return <Zap size={16} />;
-    if (title.includes('Liderança') || title.includes('IGL')) return <Brain size={16} />;
+    if (title.includes('Liderança') || title.includes('IGL')) return <Target size={16} />;
     if (title.includes('Comunicação')) return <MessageSquare size={16} />;
     return <Activity size={16} />;
   }
@@ -109,7 +87,7 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate, onUpg
   const handleShareProfile = () => {
     const url = `${window.location.origin}/?u=${user.username}`;
     navigator.clipboard.writeText(url);
-    alert("Link do perfil copiado para a área de transferência!");
+    alert("Link do perfil copiado!");
   };
 
   useEffect(() => {
@@ -125,7 +103,7 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate, onUpg
   }, [user.clanId]);
 
   return (
-    <>
+    <div className="noise-bg grid-bg scanline">
       <ClanCreationModal
         isOpen={isClanModalOpen}
         onClose={() => setIsClanModalOpen(false)}
@@ -148,29 +126,29 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate, onUpg
       )}
 
       {isAvatarModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md relative">
-            <button onClick={() => setIsAvatarModalOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X size={20} /></button>
-            <h3 className="text-xl font-bold text-white mb-4">Alterar Foto de Perfil</h3>
-            <p className="text-sm text-slate-400 mb-4">Selecione uma imagem do seu dispositivo (max 2MB).</p>
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#121417] border border-white/10 rounded-sm p-8 w-full max-w-md relative animate-in zoom-in-95">
+            <button onClick={() => setIsAvatarModalOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X size={24} /></button>
+            <h3 className="text-xl font-tactical font-black text-white uppercase italic tracking-tighter mb-4">Sincronizar Avatar</h3>
+            <p className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-6">ENDPOINT_AVATAR // UPLOAD_LIMIT: 2MB</p>
 
-            <label className="block w-full cursor-pointer bg-slate-950 border-2 border-slate-700 border-dashed rounded-xl p-8 text-center hover:border-blue-500 transition-colors mb-6 group">
+            <label className="block w-full cursor-pointer bg-black/40 border-2 border-white/5 border-dashed rounded-sm p-10 text-center hover:border-[#ffb800]/50 transition-all mb-8 group">
               <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
               {newAvatarUrl ? (
                 <div className="relative w-32 h-32 mx-auto">
-                  <img src={newAvatarUrl} className="w-full h-full rounded-full object-cover border-4 border-slate-800 shadow-xl" />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Upload className="text-white" size={24} />
+                  <img src={newAvatarUrl} className="w-full h-full rounded-sm object-cover border-4 border-[#1c1f24] shadow-2xl" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Upload className="text-[#ffb800]" size={32} />
                   </div>
                 </div>
               ) : (
-                <div className="text-slate-400 group-hover:text-blue-400 transition-colors">
-                  <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-3 border border-slate-700 group-hover:border-blue-500">
-                    <Upload size={24} />
+                <div className="text-slate-600 group-hover:text-[#ffb800] transition-colors">
+                  <div className="w-16 h-16 bg-white/5 rounded-sm flex items-center justify-center mx-auto mb-4 border border-white/5 group-hover:border-[#ffb800]/50">
+                    <Upload size={28} />
                   </div>
-                  <span className="text-sm font-bold">Clique para enviar foto</span>
-                  <p className="text-xs text-slate-500 mt-1">JPG, PNG ou GIF</p>
+                  <span className="text-[11px] font-mono font-black uppercase tracking-widest">Enviar Arquivo</span>
+                  <p className="text-[9px] text-slate-700 mt-2">JPG, PNG, GIF</p>
                 </div>
               )}
             </label>
@@ -178,21 +156,17 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate, onUpg
             <button
               onClick={handleUpdateAvatar}
               disabled={updating || !newAvatarUrl}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold py-3 rounded-lg transition-colors shadow-lg shadow-blue-600/20"
+              className="w-full bg-[#ffb800] hover:bg-[#ffc933] disabled:bg-white/5 disabled:text-slate-700 text-black font-tactical font-black uppercase italic tracking-widest py-4 rounded-sm transition-all shadow-xl active:scale-95"
             >
-              {updating ? 'Salvando...' : 'Salvar Nova Foto'}
+              {updating ? 'PROCESSANDO...' : 'ATUALIZAR_IDENTIDADE'}
             </button>
           </div>
         </div>
       )}
 
-      import PlayerIDCard from '../components/PlayerIDCard';
-
-      // ... (inside component)
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: ID Card */}
-        <div className="lg:col-span-1 space-y-6">
+        {/* Left Column */}
+        <div className="lg:col-span-1 space-y-8">
           <PlayerIDCard
             user={user}
             clan={userClan}
@@ -203,264 +177,216 @@ const Profile: React.FC<ProfileProps> = ({ user, onEquip, onProfileUpdate, onUpg
           />
         </div>
 
-        {/* Right Column: DNA Competitivo (Leetify Style) */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* Right Column */}
+        <div className="lg:col-span-2 space-y-8">
 
-          {/* PERFORMANCE DNA SECTION */}
-          <div className={`relative bg-slate-900 border rounded-2xl p-6 overflow-hidden ${isPremium ? 'border-brand-accent/30' : 'border-slate-800'}`}>
+          {/* PERFORMANCE DNA */}
+          <div className={`tactical-panel bg-[#121417] rounded-2xl p-8 relative overflow-hidden ${isPremium ? 'border-[#ffb800]/20' : 'border-white/5'}`}>
+            <div className="absolute right-0 top-0 p-4 opacity-5 pointer-events-none"><Cpu size={120} /></div>
 
-            {/* Header */}
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${isPremium ? 'bg-brand-accent/20 text-brand-accent' : 'bg-slate-800 text-slate-400'}`}>
-                  <TrendingUp size={24} />
+            <div className="flex justify-between items-center mb-10">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-sm ${isPremium ? 'bg-[#ffb800]/20 text-[#ffb800]' : 'bg-white/5 text-slate-600'}`}>
+                  <Activity size={24} />
                 </div>
                 <div>
-                  <h3 className={`text-xl font-bold ${isPremium ? 'text-white' : 'text-slate-300'}`}>DNA Competitivo</h3>
-                  <p className="text-xs text-slate-500">Análise Cruzada: Habilidade vs. Comportamento</p>
+                  <h3 className="text-xl font-tactical font-black text-white uppercase italic tracking-tighter">DNA_COMPETITIVO</h3>
+                  <p className="text-[10px] font-mono font-bold text-slate-600 uppercase tracking-widest">Sincronização de biometria tática</p>
                 </div>
               </div>
               {isPremium && (
-                <div className="px-3 py-1 rounded-full border border-brand-accent/30 bg-brand-accent/10 text-brand-accent text-xs font-bold flex items-center gap-1">
-                  <Crown size={12} /> PRO
+                <div className="px-4 py-1.5 rounded-sm border border-[#ffb800]/30 bg-[#ffb800]/10 text-[#ffb800] text-[10px] font-mono font-black uppercase tracking-widest flex items-center gap-2">
+                  <Crown size={12} /> STATUS_PRO
                 </div>
               )}
             </div>
 
-            {/* LOCK OVERLAY FOR NON-PREMIUM */}
             {!isPremium && (
-              <div className="absolute inset-0 z-10 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center text-center p-8">
-                <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 border border-slate-700 shadow-xl">
-                  <Lock className="text-slate-400" size={32} />
+              <div className="absolute inset-0 z-20 bg-[#0a0b0d]/60 backdrop-blur-md flex flex-col items-center justify-center text-center p-12">
+                <div className="relative mb-10">
+                  <div className="absolute -inset-8 bg-[#ffb800]/10 rounded-full blur-[80px] animate-pulse"></div>
+                  <div className="relative w-28 h-28 bg-[#1c1f24] rounded-sm flex items-center justify-center border border-white/5 shadow-2xl rotate-3 hover:rotate-0 transition-all duration-500">
+                    <Lock className="text-[#ffb800]" size={48} />
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2">Análise Profunda Bloqueada</h3>
-                <p className="text-slate-400 max-w-md mb-6">
-                  Descubra seu verdadeiro impacto. Assinantes Premium veem como se comparam à média do rank em Mira, Utilitários e Liderança.
+
+                <h3 className="text-3xl font-tactical font-black text-white mb-4 tracking-tighter uppercase italic">
+                  Acesso <span className="text-[#ffb800]">RESTRITO</span>
+                </h3>
+                <p className="text-slate-500 max-w-sm mb-10 text-xs leading-relaxed font-mono font-bold uppercase tracking-widest">
+                  Compare mira, utilidade e posicionamento com a elite do servidor para otimizar sua progressão.
                 </p>
-                <button className="px-8 py-3 bg-gradient-to-r from-brand-accent to-purple-600 text-white font-bold rounded-xl shadow-lg shadow-purple-500/20 hover:scale-105 transition-transform">
-                  Desbloquear Premium Agora
+
+                <button
+                  onClick={onUpgrade}
+                  className="w-full max-w-xs py-5 bg-[#ffb800] text-black font-tactical font-black uppercase italic tracking-widest rounded-sm shadow-[0_10px_30px_rgba(255,184,0,0.15)] hover:bg-[#ffc933] active:scale-95 transition-all"
+                >
+                  DESTRAVAR_ANALISE_PRO
                 </button>
+
+                <p className="mt-8 text-[9px] text-slate-700 font-mono font-black uppercase tracking-[0.2em] flex items-center gap-3">
+                  <Shield size={10} /> PROTOCOLO_DE_ASSINATURA_REQUERIDO
+                </p>
               </div>
             )}
 
-            {/* ANALYTICS CONTENT */}
-            <div className={!isPremium ? 'filter blur-md pointer-events-none opacity-50' : ''}>
-
-              {/* Top Stats Grid with Grading */}
-              <div className="grid grid-cols-4 gap-4 mb-8">
-                <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 relative overflow-hidden group hover:border-slate-600 transition-colors">
-                  <div className="absolute right-0 top-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Crosshair size={40} /></div>
-                  <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Aim Rating</div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-mono font-bold text-white">{user.advancedStats.headshotPct}</span>
-                    <span className="text-xs text-slate-500">% HS</span>
+            <div className={!isPremium ? 'filter blur-xl pointer-events-none opacity-20' : ''}>
+              {/* Grading Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+                {[
+                  { label: 'Aim Rating', value: user.advancedStats.headshotPct, unit: '% HS', icon: Crosshair, grade: 'A', color: 'text-white' },
+                  { label: 'Damage Impact', value: user.advancedStats.adr, unit: 'ADR', icon: Target, grade: 'B', color: 'text-[#ffb800]' },
+                  { label: 'KAST Index', value: user.advancedStats.kast, unit: '%', icon: Shield, grade: 'C+', color: 'text-blue-400' },
+                  { label: 'Entry Success', value: user.advancedStats.entrySuccess, unit: '%', icon: Zap, grade: 'D', color: 'text-red-400' }
+                ].map((stat, i) => (
+                  <div key={i} className="bg-black/40 rounded-sm p-5 border border-white/5 relative group overflow-hidden">
+                    <div className="absolute right-0 top-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity"><stat.icon size={40} /></div>
+                    <p className="text-[9px] font-mono font-bold text-slate-600 uppercase tracking-widest mb-2">{stat.label}</p>
+                    <div className="flex items-baseline gap-1 mb-3">
+                      <span className={`text-2xl font-mono font-black ${stat.color}`}>{stat.value}</span>
+                      <span className="text-[10px] text-slate-700 font-bold">{stat.unit}</span>
+                    </div>
+                    <span className="text-[10px] font-mono font-black border border-current px-2 py-0.5 rounded-sm opacity-50">{stat.grade}</span>
                   </div>
-                  <div className="mt-2 text-xs font-bold text-green-400 bg-green-900/20 inline-block px-1.5 rounded">Grade A</div>
-                </div>
-
-                <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 relative overflow-hidden group hover:border-slate-600 transition-colors">
-                  <div className="absolute right-0 top-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Target size={40} /></div>
-                  <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Impact (ADR)</div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-mono font-bold text-blue-400">{user.advancedStats.adr}</span>
-                  </div>
-                  <div className="mt-2 text-xs font-bold text-yellow-400 bg-yellow-900/20 inline-block px-1.5 rounded">Grade B</div>
-                </div>
-
-                <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 relative overflow-hidden group hover:border-slate-600 transition-colors">
-                  <div className="absolute right-0 top-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Shield size={40} /></div>
-                  <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Utility / Supp</div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-mono font-bold text-purple-400">{user.advancedStats.kast}</span>
-                    <span className="text-xs text-slate-500">KAST</span>
-                  </div>
-                  <div className="mt-2 text-xs font-bold text-slate-400 bg-slate-800 inline-block px-1.5 rounded">Grade C+</div>
-                </div>
-
-                <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 relative overflow-hidden group hover:border-slate-600 transition-colors">
-                  <div className="absolute right-0 top-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Zap size={40} /></div>
-                  <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Opening Duels</div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-mono font-bold text-red-400">{user.advancedStats.entrySuccess}</span>
-                    <span className="text-xs text-slate-500">% Win</span>
-                  </div>
-                  <div className="mt-2 text-xs font-bold text-red-400 bg-red-900/20 inline-block px-1.5 rounded">Grade D</div>
-                </div>
+                ))}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* The "Leetify" Radar Chart */}
-                <div className="bg-slate-950/30 rounded-xl p-4 border border-slate-800 flex flex-col min-h-[350px]">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-300">Perfil Híbrido</h4>
-                      <p className="text-[10px] text-slate-500">Você vs. Média do Elo (Ouro IV)</p>
-                    </div>
-                    <div className="flex flex-col text-[10px] gap-1">
-                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-brand-accent"></span> Você</span>
-                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-600"></span> Média</span>
-                    </div>
-                  </div>
-                  <div className="flex-1 w-full min-h-0 relative">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                {/* Radar Chart */}
+                <div className="bg-black/20 rounded-sm p-6 border border-white/5 flex flex-col min-h-[400px]">
+                  <h4 className="text-[11px] font-mono font-black text-white mb-8 uppercase tracking-widest italic border-b border-white/5 pb-2">MAPA_DE_ATRIBUTOS</h4>
+                  <div className="flex-1 w-full relative">
                     <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart cx="50%" cy="50%" outerRadius="70%" data={user.advancedStats.radar}>
-                        <PolarGrid stroke="#334155" strokeDasharray="3 3" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} />
+                      <RadarChart cx="50%" cy="50%" outerRadius="75%" data={user.advancedStats.radar}>
+                        <PolarGrid stroke="rgba(255,255,255,0.05)" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }} />
                         <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                        {/* Rank Average Ghost */}
-                        <Radar
-                          name="Média do Rank"
-                          dataKey="avg"
-                          stroke="#475569"
-                          strokeWidth={2}
-                          fill="#475569"
-                          fillOpacity={0.1}
-                        />
-                        {/* User Stats */}
-                        <Radar
-                          name={user.username}
-                          dataKey="A"
-                          stroke="#d946ef" // Brand Accent
-                          strokeWidth={3}
-                          fill="#d946ef"
-                          fillOpacity={0.4}
-                        />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#fff', fontSize: '12px' }}
-                          itemStyle={{ padding: 0 }}
-                        />
+                        <Radar name="Media" dataKey="avg" stroke="transparent" fill="rgba(255,184,0,0.05)" fillOpacity={0.5} />
+                        <Radar name="Voce" dataKey="A" stroke="#ffb800" strokeWidth={2} fill="#ffb800" fillOpacity={0.2} />
+                        <Tooltip contentStyle={{ backgroundColor: '#1c1f24', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }} />
                       </RadarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
 
-                {/* Focus Areas (AI Coach) */}
-                <div className="bg-slate-950/30 rounded-xl p-4 border border-slate-800 flex flex-col">
-                  <h4 className="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
-                    <Brain size={16} className="text-brand-purple" /> Áreas de Foco
-                  </h4>
-                  <div className="space-y-3 overflow-y-auto max-h-[300px] custom-scrollbar pr-2">
+                {/* Focus Areas */}
+                <div className="flex flex-col gap-4">
+                  <h4 className="text-[11px] font-mono font-black text-white mb-4 uppercase tracking-widest italic border-b border-white/5 pb-2">AREAS_DE_OTIMIZACAO</h4>
+                  <div className="space-y-4 overflow-y-auto max-h-[350px] custom-scrollbar pr-2">
                     {user.advancedStats.focusAreas?.map((focus, idx) => (
-                      <div key={idx} className="bg-slate-900 border border-slate-800 p-3 rounded-lg hover:bg-slate-800 transition-colors">
-                        <div className="flex justify-between items-start mb-1">
-                          <div className="flex items-center gap-2 font-bold text-sm text-slate-200">
-                            {getFocusIcon(focus.title)}
+                      <div key={idx} className="bg-black/40 border border-white/5 p-4 rounded-sm hover:border-[#ffb800]/30 transition-all">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-3 font-tactical font-black text-xs text-white uppercase italic tracking-tighter">
+                            <span className="text-[#ffb800]">{getFocusIcon(focus.title)}</span>
                             {focus.title}
                           </div>
-                          <span className={`text-sm font-black ${focus.color}`}>{focus.score}</span>
+                          <span className={`text-xs font-mono font-black px-2 py-0.5 border border-current rounded-sm ${focus.color}`}>{focus.score}</span>
                         </div>
-                        <p className="text-xs text-slate-400 leading-relaxed mb-2">
-                          {focus.description}
-                        </p>
-                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
-                          <span className="text-slate-600">Tendência:</span>
-                          {focus.trend === 'up' && <span className="text-green-500 flex items-center"><TrendingUp size={10} className="mr-1" /> Melhorando</span>}
-                          {focus.trend === 'down' && <span className="text-red-500 flex items-center"><TrendingUp size={10} className="mr-1 rotate-180" /> Caindo</span>}
-                          {focus.trend === 'stable' && <span className="text-blue-500 flex items-center">Estável</span>}
+                        <p className="text-[11px] text-slate-500 leading-relaxed mb-4 font-medium italic">"{focus.description}"</p>
+                        <div className="flex items-center gap-3 text-[9px] font-mono font-black uppercase tracking-widest">
+                          <span className="text-slate-800">TENDENCIA:</span>
+                          {focus.trend === 'up' && <span className="text-green-500 flex items-center"><TrendingUp size={10} className="mr-1" /> OPTIMIZING</span>}
+                          {focus.trend === 'down' && <span className="text-red-500 flex items-center"><TrendingUp size={10} className="mr-1 rotate-180" /> DEGRADING</span>}
                         </div>
                       </div>
                     ))}
-                    <div className="bg-brand-purple/10 border border-brand-purple/20 p-3 rounded-lg text-center mt-2">
-                      <p className="text-xs text-brand-purple font-bold">Dica do Sherpa IA</p>
-                      <p className="text-[10px] text-slate-400 mt-1">"Seu uso de utilitários está baixo. Tente comprar mais flashbangs em rounds armados."</p>
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Customization Section (Inventory) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-            <h3 className="font-bold text-lg mb-4 text-white flex items-center">
-              <Paintbrush className="mr-2 text-purple-400" size={20} /> Personalizar (Inventário)
+          {/* CUSTOMIZATION / INVENTORY */}
+          <div className="tactical-panel bg-[#121417] rounded-2xl p-8 border-white/5">
+            <h3 className="font-tactical font-black text-xl uppercase italic tracking-tighter text-white mb-10 flex items-center gap-4">
+              <Paintbrush className="text-[#ffb800]" size={24} /> INVENTARIO_DE_MODULOS
             </h3>
 
-            <div className="space-y-6">
-              {/* Borders */}
+            <div className="space-y-10">
+              {/* Titles Section */}
               <div>
-                <label className="text-xs text-slate-500 uppercase font-bold mb-3 block border-b border-slate-800 pb-1">Bordas Adquiridas</label>
-                {ownedBorders.length > 0 ? (
-                  <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin">
-                    {ownedBorders.map(item => (
-                      <button
-                        key={item.id}
-                        onClick={() => onEquip('border', item.id)}
-                        className={`w-14 h-14 rounded-full border-4 flex-shrink-0 relative transition-transform hover:scale-105 ${item.value} ${user.equipped.border === item.id ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900' : ''}`}
-                        title={item.name}
-                      >
-                        {user.equipped.border === item.id && <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full"><Check size={16} className="text-white" /></div>}
-                      </button>
-                    ))}
-                  </div>
-                ) : <p className="text-sm text-slate-600 italic">Nenhuma borda comprada.</p>}
-              </div>
-
-              {/* Colors */}
-              <div>
-                <label className="text-xs text-slate-500 uppercase font-bold mb-3 block border-b border-slate-800 pb-1">Cores de Nome</label>
-                {ownedColors.length > 0 ? (
-                  <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin">
-                    {ownedColors.map(item => (
-                      <button
-                        key={item.id}
-                        onClick={() => onEquip('nameColor', item.id)}
-                        className={`h-12 px-4 rounded-lg flex-shrink-0 relative bg-slate-950 font-bold text-lg flex items-center justify-center border border-slate-800 ${item.value} ${user.equipped.nameColor === item.id ? 'ring-2 ring-white' : ''}`}
-                        title={item.name}
-                      >
-                        {user.username}
-                      </button>
-                    ))}
-                  </div>
-                ) : <p className="text-sm text-slate-600 italic">Nenhuma cor comprada.</p>}
-              </div>
-
-              {/* Titles */}
-              <div>
-                <label className="text-xs text-slate-500 uppercase font-bold mb-3 block border-b border-slate-800 pb-1">Títulos</label>
+                <label className="text-[10px] font-mono font-black text-slate-600 uppercase tracking-[0.3em] mb-6 block border-b border-white/5 pb-2">PATENTES_ADQUIRIDAS</label>
                 {ownedTitles.length > 0 ? (
-                  <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                     {ownedTitles.map(item => (
                       <button
                         key={item.id}
                         onClick={() => onEquip('title', item.id)}
-                        className={`px-4 py-2 rounded-lg flex-shrink-0 relative bg-slate-950 text-sm font-bold border border-slate-800 transition-all hover:border-yellow-500/50 ${user.equipped.title === item.id ? 'ring-2 ring-yellow-500 border-yellow-500 bg-yellow-900/10 text-yellow-200' : 'text-slate-300'}`}
-                        title={item.description}
+                        className={`p-4 rounded-sm border transition-all flex flex-col gap-2 relative group overflow-hidden ${user.equipped.title === item.id ? 'bg-[#ffb800]/10 border-[#ffb800] ring-2 ring-[#ffb800]/20' : 'bg-black/20 border-white/5 hover:border-white/20'}`}
                       >
-                        {item.value}
+                        <span className={`text-xs font-tactical font-black uppercase italic tracking-widest ${user.equipped.title === item.id ? 'text-[#ffb800]' : 'text-white'}`}>{item.value}</span>
+                        <span className="text-[9px] font-mono font-bold text-slate-600 uppercase tracking-widest">{item.description}</span>
+                        {user.equipped.title === item.id && <div className="absolute top-2 right-2 text-[#ffb800]"><Check size={14} /></div>}
                       </button>
                     ))}
                   </div>
-                ) : <p className="text-sm text-slate-600 italic">Nenhum título comprado.</p>}
+                ) : <p className="text-[10px] font-mono text-slate-800 uppercase tracking-widest">Sem registros no banco de dados.</p>}
               </div>
 
-              {/* Entry Effects */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                {/* Borders Section */}
+                <div>
+                  <label className="text-[10px] font-mono font-black text-slate-600 uppercase tracking-[0.3em] mb-6 block border-b border-white/5 pb-2">BORDAS_DE_AVATAR</label>
+                  {ownedBorders.length > 0 ? (
+                    <div className="flex flex-wrap gap-4">
+                      {ownedBorders.map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => onEquip('border', item.id)}
+                          className={`w-14 h-14 rounded-full border-4 transition-all hover:scale-110 relative ${item.value} ${user.equipped.border === item.id ? 'ring-2 ring-white ring-offset-4 ring-offset-[#121417]' : 'opacity-60 hover:opacity-100'}`}
+                        >
+                          {user.equipped.border === item.id && <Check className="absolute inset-0 m-auto text-white drop-shadow-md" size={20} />}
+                        </button>
+                      ))}
+                    </div>
+                  ) : <p className="text-[10px] font-mono text-slate-800 uppercase tracking-widest">Vazio.</p>}
+                </div>
+
+                {/* Name Colors Section */}
+                <div>
+                  <label className="text-[10px] font-mono font-black text-slate-600 uppercase tracking-[0.3em] mb-6 block border-b border-white/5 pb-2">IDENTIFICAÇÃO_VISUAL</label>
+                  {ownedColors.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      {ownedColors.map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => onEquip('nameColor', item.id)}
+                          className={`py-3 rounded-sm font-tactical font-black uppercase italic tracking-tighter border transition-all text-xs ${item.value} ${user.equipped.nameColor === item.id ? 'border-[#ffb800] bg-[#ffb800]/5' : 'bg-black/20 border-white/5'}`}
+                        >
+                          {user.username}
+                        </button>
+                      ))}
+                    </div>
+                  ) : <p className="text-[10px] font-mono text-slate-800 uppercase tracking-widest">Vazio.</p>}
+                </div>
+              </div>
+
+              {/* Entry Effects Section */}
               <div>
-                <label className="text-xs text-slate-500 uppercase font-bold mb-3 block border-b border-slate-800 pb-1">Efeitos de Entrada (Lobby)</label>
+                <label className="text-[10px] font-mono font-black text-slate-600 uppercase tracking-[0.3em] mb-6 block border-b border-white/5 pb-2">EFEITOS_DE_PROTOCOLO_LOBBY</label>
                 {ownedEffects.length > 0 ? (
-                  <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-4">
                     {ownedEffects.map(item => (
                       <button
                         key={item.id}
                         onClick={() => onEquip('entryEffect', item.id)}
-                        className={`w-20 h-20 rounded-lg flex-shrink-0 relative overflow-hidden group border-2 transition-all ${user.equipped.entryEffect === item.id ? 'border-blue-500 ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-900' : 'border-slate-800 hover:border-slate-600'}`}
-                        title={item.name}
+                        className={`aspect-square rounded-sm relative overflow-hidden group border-2 transition-all hover:border-[#ffb800]/50 ${user.equipped.entryEffect === item.id ? 'border-[#ffb800]' : 'border-white/5'}`}
                       >
-                        <img src={item.value} className="w-full h-full object-cover" />
-                        {user.equipped.entryEffect === item.id && <div className="absolute inset-0 flex items-center justify-center bg-black/50"><Check size={24} className="text-white drop-shadow-md" /></div>}
-                        <div className="absolute bottom-0 w-full bg-black/60 text-[10px] text-white py-1 text-center font-bold truncate px-1">
-                          {item.name}
+                        <img src={item.value} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" alt="Eff" />
+                        {user.equipped.entryEffect === item.id && <div className="absolute inset-0 flex items-center justify-center bg-[#ffb800]/20"><Check className="text-white drop-shadow-lg" size={24} /></div>}
+                        <div className="absolute bottom-0 w-full bg-black/80 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <p className="text-[9px] font-mono font-black text-white uppercase truncate">{item.name}</p>
                         </div>
                       </button>
                     ))}
                   </div>
-                ) : <p className="text-sm text-slate-600 italic">Nenhum efeito comprado.</p>}
+                ) : <p className="text-[10px] font-mono text-slate-800 uppercase tracking-widest">Vazio.</p>}
               </div>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

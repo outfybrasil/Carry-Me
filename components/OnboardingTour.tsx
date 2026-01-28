@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { CheckCircle, ArrowRight, User, ShieldCheck, Coins, Camera, ListTodo, ShoppingBag, Swords } from 'lucide-react';
+import { CheckCircle, ArrowRight, User, ShieldCheck, Coins, Camera, ListTodo, ShoppingBag, Swords, Terminal, Target } from 'lucide-react';
 
 interface OnboardingTourProps {
   step: number;
@@ -17,98 +17,99 @@ interface OnboardingTourProps {
 const OnboardingTour: React.FC<OnboardingTourProps> = ({ step, onNext, onNavigate, currentPage, tasks }) => {
   if (step === 0) return null;
 
-  // MINI MODE: If user is on step 2, always show checklist unless on a page that needs full attention
-  // Only show mini if we are actively doing tasks
   if (step === 2) {
-      const remaining = [!tasks?.avatar, !tasks?.shop, !tasks?.match].filter(Boolean).length;
-      
-      return (
-        <div className="fixed bottom-6 right-6 z-[100] max-w-sm w-full bg-slate-900 border border-blue-500 rounded-xl p-5 shadow-[0_0_30px_rgba(59,130,246,0.3)] animate-in slide-in-from-right duration-500">
-            <div className="flex items-start gap-4">
-                <div className="p-3 bg-blue-500/20 rounded-full">
-                    <ListTodo className="text-blue-400" size={24} />
-                </div>
-                <div className="flex-1">
-                    <h3 className="font-bold text-white text-lg flex justify-between">
-                       Missões Iniciais
-                       <span className="text-xs bg-blue-600 px-2 py-1 rounded text-white">{3 - remaining}/3</span>
-                    </h3>
-                    
-                    <div className="mt-3 space-y-2">
-                        <button onClick={() => onNavigate('profile')} className={`w-full flex items-center justify-between text-sm p-2 rounded ${tasks?.avatar ? 'text-green-400 bg-green-900/10 line-through decoration-green-500' : 'text-slate-300 hover:bg-slate-800'}`}>
-                           <span className="flex items-center gap-2"><Camera size={14}/> Mudar Avatar</span>
-                           {tasks?.avatar && <CheckCircle size={14} />}
-                        </button>
-                        <button onClick={() => onNavigate('shop')} className={`w-full flex items-center justify-between text-sm p-2 rounded ${tasks?.shop ? 'text-green-400 bg-green-900/10 line-through decoration-green-500' : 'text-slate-300 hover:bg-slate-800'}`}>
-                           <span className="flex items-center gap-2"><ShoppingBag size={14}/> Visitar Loja</span>
-                           {tasks?.shop && <CheckCircle size={14} />}
-                        </button>
-                        <button onClick={() => onNavigate('match')} className={`w-full flex items-center justify-between text-sm p-2 rounded ${tasks?.match ? 'text-green-400 bg-green-900/10 line-through decoration-green-500' : 'text-slate-300 hover:bg-slate-800'}`}>
-                           <span className="flex items-center gap-2"><Swords size={14}/> Ver Jogar Agora</span>
-                           {tasks?.match && <CheckCircle size={14} />}
-                        </button>
-                    </div>
-                </div>
-            </div>
+    const remaining = [!tasks?.avatar, !tasks?.shop, !tasks?.match].filter(Boolean).length;
+
+    return (
+      <div className="fixed bottom-10 right-10 z-[100] max-w-sm w-full bg-[#121417] border border-[#ffb800]/50 rounded-sm p-8 shadow-2xl animate-in slide-in-from-right-10 duration-700 noise-bg cursor-default">
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+            <h3 className="font-tactical font-black text-white text-lg uppercase italic tracking-tighter flex items-center gap-4">
+              <Terminal size={18} className="text-[#ffb800]" /> OBJETIVOS_ATIVOS
+            </h3>
+            <span className="font-mono font-black text-[#ffb800] text-xs bg-[#ffb800]/10 px-2 py-0.5 rounded-sm">{3 - remaining}/3</span>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              { id: 'profile', label: 'ACT_MOD_AVATAR', done: tasks?.avatar, icon: Camera },
+              { id: 'shop', label: 'SCAN_MERCADO', done: tasks?.shop, icon: ShoppingBag },
+              { id: 'match', label: 'DEPLOY_RADAR', done: tasks?.match, icon: Swords }
+            ].map(task => (
+              <button
+                key={task.id}
+                onClick={() => onNavigate(task.id)}
+                className={`w-full flex items-center justify-between p-4 rounded-sm border transition-all font-mono font-black text-[10px] uppercase tracking-widest ${task.done
+                  ? 'bg-green-500/5 border-green-500/20 text-green-500/40 line-through'
+                  : 'bg-black/40 border-white/5 text-slate-400 hover:border-[#ffb800]/30 hover:text-white'}`}
+              >
+                <span className="flex items-center gap-4">
+                  <task.icon size={14} className={task.done ? 'text-green-500/20' : 'text-[#ffb800]'} />
+                  {task.label}
+                </span>
+                {task.done && <CheckCircle size={14} />}
+              </button>
+            ))}
+          </div>
+          <div className="pt-2 text-[8px] font-mono font-bold text-slate-800 uppercase tracking-widest">SISTEMA_DE_SINALIZACAO_HUD_A1</div>
         </div>
-      );
+      </div>
+    );
   }
 
-  // FULLSCREEN MODES FOR WELCOME AND REWARD
   return (
-    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="max-w-lg w-full bg-slate-900 border border-brand-purple/50 rounded-2xl shadow-[0_0_50px_rgba(124,58,237,0.3)] overflow-hidden relative animate-in zoom-in-95 duration-300">
-        
-        {/* Progress Bar */}
-        <div className="h-1 w-full bg-slate-800">
-           <div 
-             className="h-full bg-brand-purple transition-all duration-500" 
-             style={{ width: step === 1 ? '10%' : step === 3 ? '100%' : '50%' }}
-           ></div>
+    <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-500">
+      <div className="max-w-xl w-full bg-[#121417] border border-white/10 rounded-sm shadow-2xl overflow-hidden relative animate-in zoom-in-95 duration-500 noise-bg grid-bg scanline">
+
+        <div className="h-1.5 w-full bg-white/5">
+          <div
+            className="h-full bg-[#ffb800] transition-all duration-1000 shadow-[0_0_15px_#ffb800]"
+            style={{ width: step === 1 ? '10%' : step === 3 ? '100%' : '50%' }}
+          ></div>
         </div>
 
-        <div className="p-8 text-center">
-          
+        <div className="p-12 text-center">
+
           {step === 1 && (
-            <div className="animate-in fade-in slide-in-from-bottom-4">
-               <div className="w-20 h-20 bg-brand-purple/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <ShieldCheck size={40} className="text-brand-purple" />
-               </div>
-               <h2 className="text-3xl font-bold text-white mb-4 font-display">Bem-vindo à CarryMe</h2>
-               <p className="text-slate-300 text-lg mb-8 leading-relaxed">
-                 Esta não é apenas mais uma plataforma de matchmaking. Aqui, sua <strong>reputação</strong> vale mais que seu elo.
-               </p>
-               <button 
-                 onClick={onNext}
-                 className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
-               >
-                 Começar Missões <ArrowRight size={18} />
-               </button>
+            <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+              <div className="w-24 h-24 bg-[#ffb800]/10 rounded-sm flex items-center justify-center mx-auto mb-10 border border-[#ffb800]/20 shadow-2xl">
+                <ShieldCheck size={48} className="text-[#ffb800]" />
+              </div>
+              <h2 className="text-4xl font-tactical font-black text-white mb-6 uppercase italic tracking-tighter">BEM-VINDO_AO_TERMINAL</h2>
+              <p className="text-slate-600 font-mono font-bold text-sm mb-12 leading-relaxed uppercase tracking-widest">
+                ESTE NÃO É APENAS MAIS UM CORE DE MATCHMAKING. AQUI, SUA <strong className="text-white">REPUTACAO</strong> É SEU ATRIBUTO MAIS CRÍTICO.
+              </p>
+              <button
+                onClick={onNext}
+                className="w-full py-5 bg-[#ffb800] text-black font-tactical font-black text-xl uppercase italic tracking-widest hover:bg-[#ffc933] transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-95"
+              >
+                INICIAR_CALIBRACAO <ArrowRight size={22} />
+              </button>
             </div>
           )}
 
           {step === 3 && (
-            <div className="animate-in zoom-in duration-500">
-               <div className="relative w-24 h-24 mx-auto mb-6">
-                  <div className="absolute inset-0 bg-yellow-500 blur-2xl opacity-20 rounded-full animate-pulse"></div>
-                  <div className="w-full h-full bg-slate-950 rounded-full border-4 border-yellow-500 flex items-center justify-center relative z-10">
-                     <Coins size={40} className="text-yellow-500" />
-                  </div>
-               </div>
-               
-               <h2 className="text-3xl font-bold text-white mb-2 font-display">Missão Cumprida!</h2>
-               <p className="text-yellow-400 font-bold text-lg mb-6">+500 CarryCoins Adicionados</p>
-               
-               <p className="text-slate-400 text-sm mb-8">
-                 Agora você tem saldo para usar na loja ou contratar seu primeiro Sherpa. Mantenha o nível alto!
-               </p>
+            <div className="animate-in zoom-in duration-700 flex flex-col items-center">
+              <div className="relative w-32 h-32 mx-auto mb-10">
+                <div className="absolute inset-0 bg-[#ffb800] blur-3xl opacity-10 rounded-full animate-pulse"></div>
+                <div className="w-full h-full bg-black/60 rounded-sm border-2 border-[#ffb800] flex items-center justify-center relative z-10 shadow-2xl">
+                  <Coins size={48} className="text-[#ffb800] drop-shadow-[0_0_15px_#ffb800]" />
+                </div>
+              </div>
 
-               <button 
-                 onClick={onNext}
-                 className="w-full py-4 bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-yellow-500/20 transition-all flex items-center justify-center gap-2"
-               >
-                 <CheckCircle size={18} /> Resgatar e Explorar
-               </button>
+              <h2 className="text-4xl font-tactical font-black text-white mb-4 uppercase italic tracking-tighter">PROTOCOLO_CONCLUIDO</h2>
+              <p className="text-[#ffb800] font-mono font-black text-lg mb-8 uppercase tracking-[0.2em] animate-pulse">+500_CREDITOS_SINCRIZADOS</p>
+
+              <p className="text-slate-700 font-mono font-bold text-xs mb-12 uppercase tracking-widest max-w-sm leading-relaxed">
+                SALDO DISPONIBILIZADO PARA AQUISIÇÃO DE MODS OU CONTRATAÇÃO DE SHERPAS. MANTENHA O ALTO_NIVEL.
+              </p>
+
+              <button
+                onClick={onNext}
+                className="w-full py-5 bg-[#ffb800] text-black font-tactical font-black text-xl uppercase italic tracking-widest hover:bg-[#ffc933] transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-95"
+              >
+                <CheckCircle size={22} /> ACESSAR_ECOSSISTEMA
+              </button>
             </div>
           )}
 

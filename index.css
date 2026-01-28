@@ -1,24 +1,178 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
 
-/* Base styles to satisfy browser request and prevent 404s */
-body {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  background-color: #020202;
-  color: #f8fafc;
+:root {
+  /* Tactical Palette */
+  --color-bg-deep: #0a0b0d;
+  --color-bg-slate: #121417;
+  --color-bg-card: #181b1f;
+
+  --color-brand-orange: #ffb800;
+  --color-brand-primary: #ffb800;
+  /* Amber/Orange is more tactical than purple */
+  --color-brand-danger: #ff4343;
+  --color-brand-success: #00ff88;
+
+  --border-tactical: rgba(255, 184, 0, 0.15);
+  --border-muted: rgba(255, 255, 255, 0.05);
+
+  --font-tactical: 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
-/* Custom scrollbar fallback */
-::-webkit-scrollbar {
+body {
+  background-color: var(--color-bg-deep);
+  color: #e2e8f0;
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Background Texture */
+.noise-bg {
+  position: relative;
+}
+
+.noise-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3能源%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+}
+
+.grid-bg {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Tactical Elements */
+.tactical-panel {
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-muted);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.tactical-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 0;
+  background: var(--color-brand-orange);
+  transition: height 0.3s ease;
+}
+
+.tactical-panel:hover::before {
+  height: 100%;
+}
+
+/* Animations */
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+.scanline::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 184, 0, 0.05);
+  box-shadow: 0 0 10px rgba(255, 184, 0, 0.1);
+  animation: scanline 8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes glitch {
+  0% {
+    transform: translate(0);
+  }
+
+  20% {
+    transform: translate(-2px, 2px);
+  }
+
+  40% {
+    transform: translate(-2px, -2px);
+  }
+
+  60% {
+    transform: translate(2px, 2px);
+  }
+
+  80% {
+    transform: translate(2px, -2px);
+  }
+
+  100% {
+    transform: translate(0);
+  }
+}
+
+.hover-glitch:hover {
+  animation: glitch 0.2s linear infinite;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
-::-webkit-scrollbar-track {
-  background: #020202; 
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--color-bg-deep);
 }
-::-webkit-scrollbar-thumb {
-  background: #333; 
-  border-radius: 10px;
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #2d3139;
+  border-radius: 0;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #555; 
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-orange);
+}
+
+/* Typography Utility */
+.font-tactical {
+  font-family: var(--font-tactical);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.tracking-tactical {
+  letter-spacing: 0.15em;
+}
+
+/* Buttons */
+.btn-tactical {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+}
+
+.btn-tactical::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  background: rgba(255, 255, 255, 0.05);
+  transition: height 0.3s ease;
+}
+
+.btn-tactical:hover::after {
+  height: 100%;
 }

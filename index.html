@@ -1,100 +1,139 @@
-
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CarryMe - Behavior First Matchmaking</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              display: ['Space Grotesk', 'sans-serif'],
-            },
-            colors: {
-              brand: {
-                dark: '#050505',
-                purple: '#7c3aed',
-                cyan: '#06b6d4',
-                accent: '#d946ef' // Fuchsia
-              }
-            },
-            animation: {
-              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'blob': 'blob 7s infinite',
-            },
-            keyframes: {
-              blob: {
-                '0%': { transform: 'translate(0px, 0px) scale(1)' },
-                '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
-                '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
-                '100%': { transform: 'translate(0px, 0px) scale(1)' },
-              }
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="CarryMe - A primeira plataforma de matchmaking exclusiva para CS2 onde sua reputação define seu time. Jogue sem toxicidade, encontre parceiros verificados e suba de patente com respeito." />
+  <meta name="keywords"
+    content="matchmaking, gaming, cs2, counter-strike 2, esports, anti-toxicidade, coach cs2, lineups mirage, premier cs2" />
+  <meta name="author" content="OutfyBR" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://carryme.gg/" />
+  <meta property="og:title" content="CarryMe - O Matchmaking Tático de CS2" />
+  <meta property="og:description"
+    content="A primeira plataforma de matchmaking exclusiva para CS2. Encontre parceiros verificados, jogue com quem respeita e evolua seu jogo." />
+  <meta property="og:image" content="/og-image.png" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="CarryMe - Jogue CS2 Sem Toxicidade" />
+  <meta name="twitter:description"
+    content="Matchmaking exclusivo para CS2 baseado em comportamento. Jogue com jogadores que respeitam." />
+  <meta name="twitter:image" content="/og-image.png" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  <!-- Theme Color -->
+  <meta name="theme-color" content="#7c3aed" />
+
+  <title>CarryMe - Behavior First Matchmaking</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              dark: '#050505',
+              purple: '#7c3aed',
+              cyan: '#06b6d4',
+              accent: '#d946ef' // Fuchsia
+            }
+          },
+          animation: {
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'blob': 'blob 7s infinite',
+          },
+          keyframes: {
+            blob: {
+              '0%': { transform: 'translate(0px, 0px) scale(1)' },
+              '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+              '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+              '100%': { transform: 'translate(0px, 0px) scale(1)' },
             }
           }
         }
       }
-    </script>
+    }
+  </script>
 
-    <style>
-      body {
-        font-family: 'Inter', sans-serif;
-        background-color: #020202;
-        color: #f8fafc;
-        overflow-x: hidden;
-      }
-      
-      h1, h2, h3, h4, h5, h6 {
-        font-family: 'Space Grotesk', sans-serif;
-        letter-spacing: -0.02em;
-      }
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #020202;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
 
-      /* Cyber Grid Background */
-      .bg-grid {
-        background-size: 50px 50px;
-        background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                          linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-        mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
-        -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
-      }
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-family: 'Space Grotesk', sans-serif;
+      letter-spacing: -0.02em;
+    }
 
-      /* Glassmorphism Utilities */
-      .glass-panel {
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-      
-      .glass-button {
-        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-      }
+    /* Cyber Grid Background */
+    .bg-grid {
+      background-size: 50px 50px;
+      background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+    }
 
-      /* Custom scrollbar */
-      ::-webkit-scrollbar {
-        width: 6px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #020202; 
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #333; 
-        border-radius: 10px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #555; 
-      }
-    </style>
+    /* Glassmorphism Utilities */
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .glass-button {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #020202;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -109,11 +148,12 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
+
+<body>
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>

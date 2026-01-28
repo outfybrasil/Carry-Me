@@ -1,10 +1,9 @@
 
 import React from 'react';
-import { User, Crown, Mic, Clock, LogOut, CheckCircle, Copy, Play } from 'lucide-react';
+import { User, Crown, Mic, Clock, LogOut, CheckCircle, Copy, Play, Terminal, Shield, Target } from 'lucide-react';
 import { LobbyPlayer, LobbyConfig } from '../../types';
 import { STORE_ITEMS } from '../../constants';
 
-// Helper to look up item values (gifs, texts, styles)
 const getItemValue = (itemId?: string) => STORE_ITEMS.find(i => i.id === itemId)?.value;
 
 interface LobbyPlayerListProps {
@@ -35,73 +34,77 @@ const LobbyPlayerList: React.FC<LobbyPlayerListProps> = ({
     onToggleReady
 }) => {
     return (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 flex-1 flex flex-col h-full">
-            <div className="flex justify-between items-center mb-6">
+        <div className="bg-[#121417] border border-white/5 rounded-sm p-6 md:p-8 flex-1 flex flex-col h-full noise-bg relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><Shield size={160} /></div>
+
+            <div className="flex justify-between items-start mb-10 relative z-10">
                 <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2 truncate max-w-[200px] md:max-w-none">
-                        {config.title || 'Lobby Privado'}
+                    <h2 className="text-2xl font-tactical font-black text-white flex items-center gap-4 uppercase italic tracking-tighter truncate max-w-[300px] md:max-w-none">
+                        <Target size={24} className="text-[#ffb800]" /> {config.title || 'OPERACAO_ANONIMA'}
                     </h2>
-                    <p className="text-slate-400 text-xs md:text-sm">{config.game} • {config.vibe}</p>
+                    <div className="flex items-center gap-3 mt-2">
+                        <span className="text-[10px] font-mono font-black text-[#ffb800] uppercase tracking-[0.2em]">{config.game}</span>
+                        <span className="w-1 h-1 bg-slate-800 rounded-full"></span>
+                        <span className="text-[10px] font-mono font-black text-slate-600 uppercase tracking-[0.2em]">{config.vibe}</span>
+                    </div>
                 </div>
-                <div className="flex gap-2">
-                    <button onClick={onCopyInvite} className="bg-slate-800 hover:bg-slate-700 text-white p-2 md:px-3 md:py-2 rounded-lg border border-slate-700 flex items-center gap-2 text-sm transition-colors">
-                        <Copy size={14} /> <span className="hidden md:inline">Convidar</span>
+                <div className="flex gap-4">
+                    <button onClick={onCopyInvite} className="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-sm border border-white/10 flex items-center gap-3 text-[10px] font-mono font-black uppercase tracking-widest transition-all">
+                        <Copy size={14} /> <span className="hidden md:inline">GERAR_CONVITE</span>
                     </button>
-                    <div className="bg-slate-950 px-3 py-2 rounded-lg border border-slate-800 text-center">
-                        <span className="text-white font-bold text-sm">{players.length}/{maxPlayers}</span>
+                    <div className="bg-black/60 px-4 py-2 rounded-sm border border-white/5 text-center flex items-center gap-3">
+                        <User size={14} className="text-slate-700" />
+                        <span className="text-[#ffb800] font-mono font-black text-sm">{players.length}/{maxPlayers}</span>
                     </div>
                 </div>
             </div>
 
-            <div className="space-y-3 flex-1 overflow-y-auto custom-scrollbar pr-1">
-                {/* Render slots dynamically based on maxPlayers */}
+            <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2 relative z-10">
                 {Array.from({ length: maxPlayers }).map((_, i) => {
                     const player = players[i];
                     return (
-                        <div key={i} className={`h-16 md:h-20 rounded-xl border flex items-center px-3 md:px-4 transition-all ${player ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-950/50 border-slate-800 border-dashed'}`}>
+                        <div key={i} className={`h-20 md:h-24 rounded-sm border flex items-center px-6 transition-all relative overflow-hidden ${player ? 'bg-black/20 border-white/10' : 'bg-black/40 border-white/5 border-dashed'}`}>
                             {player ? (
                                 <>
-                                    <div className="relative group/player">
-                                        {/* Avatar Layer (z-10 ensures it's above effect) */}
+                                    <div className="relative flex-shrink-0">
                                         <div className="relative z-10">
-                                            <img src={player.avatar} className={`w-10 h-10 md:w-12 md:h-12 rounded-full border border-slate-600 ${getItemValue(player.border)}`} />
-                                            {player.isHost && <div className="absolute -top-2 -left-2 bg-yellow-500 rounded-full p-0.5"><Crown size={10} className="text-slate-900 fill-slate-900" /></div>}
+                                            <img src={player.avatar} className={`w-12 h-12 md:w-16 md:h-16 rounded-sm object-cover border-2 border-slate-700 ${getItemValue(player.border)}`} />
+                                            {player.isHost && <div className="absolute -top-2 -left-2 bg-[#ffb800] text-black rounded-sm p-1 shadow-lg"><Crown size={12} /></div>}
                                         </div>
                                     </div>
-                                    <div className="ml-3 md:ml-4 flex-1 overflow-hidden z-10">
-                                        <div className="flex items-center gap-2">
-                                            <span onClick={() => onViewProfile(player.username)} className={`font-bold text-sm md:text-base truncate cursor-pointer hover:underline ${getItemValue(player.nameColor) || 'text-white'}`}>{player.username}</span>
-                                            <span className={`text-[10px] px-1.5 py-0.5 rounded border hidden sm:inline-block ${player.score >= 80 ? 'border-green-500/30 text-green-400 bg-green-500/10' : 'border-slate-600 text-slate-400'}`}>
-                                                {player.score} Rep
+                                    <div className="ml-6 flex-1 overflow-hidden z-10">
+                                        <div className="flex items-center gap-3">
+                                            <span onClick={() => onViewProfile(player.username)} className={`font-tactical font-black text-base md:text-xl uppercase italic tracking-tighter cursor-pointer hover:text-[#ffb800] transition-colors ${getItemValue(player.nameColor) || 'text-white'}`}>{player.username}</span>
+                                            <span className={`text-[9px] font-mono font-black px-2 py-0.5 rounded-sm border uppercase tracking-widest ${player.score >= 80 ? 'border-green-500/30 text-green-500 bg-green-500/5' : 'border-slate-800 text-slate-700'}`}>
+                                                REP: {player.score}
                                             </span>
                                         </div>
-                                        {/* Title Badge Rendering */}
                                         {player.title && (
-                                            <div className="mt-0.5">
-                                                <span className="text-[9px] font-bold uppercase tracking-wider text-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 rounded border border-yellow-500/20 shadow-[0_0_8px_rgba(234,179,8,0.2)]">
-                                                    {getItemValue(player.title)?.replace(/[^a-zA-Z0-9 ]/g, '')}
+                                            <div className="mt-1">
+                                                <span className="text-[8px] font-mono font-black uppercase tracking-[0.2em] text-[#ffb800] bg-[#ffb800]/5 px-2 py-0.5 border border-[#ffb800]/20 rounded-sm">
+                                                    {getItemValue(player.title)}
                                                 </span>
                                             </div>
                                         )}
-                                        <div className="text-[10px] md:text-xs text-slate-400 mt-0.5">{player.role}</div>
+                                        <div className="text-[9px] font-mono font-black text-slate-700 mt-1.5 uppercase tracking-widest">{player.role || 'INFANTARIA'}</div>
                                     </div>
-                                    <div className="flex items-center gap-2 md:gap-4">
-                                        <Mic size={14} className="text-slate-500 hidden sm:block" />
+                                    <div className="flex items-center gap-6">
+                                        <Mic size={16} className="text-slate-800" />
                                         {player.isReady ? (
-                                            <div className="flex items-center text-green-400 text-xs md:text-sm font-bold bg-green-400/10 px-2 py-1 rounded-lg border border-green-400/20">
-                                                <CheckCircle size={12} className="mr-1" /> <span className="hidden sm:inline">PRONTO</span>
+                                            <div className="flex items-center text-[#00ff88] text-[9px] font-mono font-black bg-[#00ff88]/5 px-3 py-1.5 rounded-sm border border-[#00ff88]/20 uppercase tracking-widest">
+                                                <CheckCircle size={12} className="mr-2" /> PRONTO
                                             </div>
                                         ) : (
-                                            <div className="flex items-center text-slate-500 text-xs md:text-sm font-bold bg-slate-800 px-2 py-1 rounded-lg">
-                                                <Clock size={12} className="mr-1" /> <span className="hidden sm:inline">...</span>
+                                            <div className="flex items-center text-slate-700 text-[9px] font-mono font-black bg-black/40 px-3 py-1.5 rounded-sm border border-white/5 uppercase tracking-widest">
+                                                <Clock size={12} className="mr-2" /> AGUARDANDO
                                             </div>
                                         )}
                                     </div>
                                 </>
                             ) : (
-                                <div className="w-full flex items-center justify-center text-slate-600 gap-2 animate-pulse">
-                                    <User size={16} />
-                                    <span className="text-xs md:text-sm font-medium">Vaga</span>
+                                <div className="w-full flex items-center justify-center text-slate-800 gap-4 opacity-30">
+                                    <Terminal size={18} />
+                                    <span className="text-[10px] font-mono font-black uppercase tracking-[0.4em]">SLOT_DISPONIVEL</span>
                                 </div>
                             )}
                         </div>
@@ -109,35 +112,35 @@ const LobbyPlayerList: React.FC<LobbyPlayerListProps> = ({
                 })}
             </div>
 
-            <div className="mt-4 pt-4 md:mt-auto md:pt-6 flex gap-3 border-t border-slate-800 md:border-0">
+            <div className="mt-8 pt-8 flex gap-4 border-t border-white/5 relative z-10">
                 <button
                     onClick={onLeaveLobby}
-                    className="px-4 md:px-6 py-3 md:py-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                    className="px-8 py-5 bg-white/5 hover:bg-red-500/10 hover:text-red-500 border border-white/5 text-slate-600 font-mono font-black text-[10px] uppercase tracking-widest rounded-sm transition-all flex items-center justify-center gap-3"
                 >
-                    <LogOut size={18} /> <span className="hidden md:inline">Sair</span>
+                    <LogOut size={18} /> ABORTAR
                 </button>
 
                 {isHost ? (
                     <button
                         onClick={onStartGame}
                         disabled={starting}
-                        className={`flex-1 py-3 md:py-4 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-base md:text-lg shadow-lg
+                        className={`flex-1 py-5 font-tactical font-black text-xl uppercase italic tracking-widest rounded-sm transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-95
                 ${players.length > 0
-                                ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white shadow-green-500/20'
-                                : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
+                                ? 'bg-[#ffb800] text-black shadow-[0_10px_30px_rgba(255,184,0,0.2)]'
+                                : 'bg-[#1c1f24] text-slate-800 cursor-not-allowed border border-white/5'}`}
                     >
-                        <Play size={20} fill="currentColor" />
-                        {starting ? 'Iniciando...' : (players.length === 1 ? 'Iniciar (Solo)' : 'Iniciar Partida')}
+                        <Play size={24} fill="currentColor" />
+                        {starting ? 'CALIBRANDO...' : (players.length === 1 ? 'INICIAR_TREINO' : 'INICIAR_OPERACAO')}
                     </button>
                 ) : (
                     <button
                         onClick={onToggleReady}
-                        className={`flex-1 py-3 md:py-4 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-base md:text-lg shadow-lg
+                        className={`flex-1 py-5 font-tactical font-black text-xl uppercase italic tracking-widest rounded-sm transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-95
                 ${userReady
-                                ? 'bg-slate-700 text-green-400 border border-green-500/30'
-                                : 'bg-green-600 hover:bg-green-500 text-white shadow-green-600/20'}`}
+                                ? 'bg-black border border-[#00ff88] text-[#00ff88] shadow-[0_0_20px_rgba(0,255,136,0.1)]'
+                                : 'bg-[#00ff88] text-black shadow-[0_10px_30px_rgba(0,255,136,0.2)]'}`}
                     >
-                        {userReady ? 'Cancelar Pronto' : 'Estou Pronto!'}
+                        {userReady ? 'CANCELAR_PRONTO' : 'ESTOU_PRONTO'}
                     </button>
                 )}
             </div>

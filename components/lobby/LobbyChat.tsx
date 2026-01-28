@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect } from 'react';
-import { Send, MessageSquare, Wifi } from 'lucide-react';
+import { Send, MessageSquare, Wifi, Terminal, Signal } from 'lucide-react';
 import { ChatMessage, Player } from '../../types';
 
 interface LobbyChatProps {
@@ -22,67 +22,69 @@ const LobbyChat: React.FC<LobbyChatProps> = ({
 }) => {
     const chatEndRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll chat
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [chat]);
 
     return (
-        <div className="w-full h-full bg-slate-900 border border-slate-800 rounded-2xl flex flex-col overflow-hidden">
-            <div className="p-3 md:p-4 border-b border-slate-800 bg-slate-950/50 flex justify-between items-center">
-                <h3 className="font-bold text-white flex items-center gap-2 text-sm md:text-base">
-                    <MessageSquare size={16} className="text-blue-500" /> Chat do Time
+        <div className="w-full h-full bg-[#121417] border border-white/5 rounded-sm flex flex-col overflow-hidden noise-bg">
+            <div className="p-4 border-b border-white/5 bg-black/40 flex justify-between items-center">
+                <h3 className="text-xs font-tactical font-black text-white flex items-center gap-3 uppercase italic tracking-tighter">
+                    <Terminal size={16} className="text-[#ffb800]" /> Link_Comando_Squad
                 </h3>
-                <div className="flex items-center gap-2 text-xs">
-                    <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
-                    <span className={isConnected ? 'text-green-500' : 'text-slate-500'}>{isConnected ? 'Realtime' : 'Conectando...'}</span>
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 px-2 py-0.5 bg-black/40 rounded-sm border border-white/5">
+                        <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-[#ffb800] shadow-[0_0_5px_#ffb800] animate-pulse' : 'bg-red-500'}`}></span>
+                        <span className={`text-[8px] font-mono font-black uppercase tracking-widest ${isConnected ? 'text-[#ffb800]' : 'text-slate-700'}`}>{isConnected ? 'SYNC_ACTIVE' : 'OFFLINE'}</span>
+                    </div>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 custom-scrollbar bg-slate-950/30">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-black/10">
                 {chat.length === 0 && (
-                    <div className="text-center text-slate-600 mt-10 text-sm">
-                        <Wifi size={24} className="mx-auto mb-2 opacity-20" />
-                        <p>Inicie a conversa...</p>
-                        <p className="text-xs text-slate-700 mt-1">Conectado via Supabase Realtime</p>
+                    <div className="text-center text-slate-800 mt-20">
+                        <Signal size={32} className="mx-auto mb-4 opacity-10" />
+                        <p className="text-[10px] font-mono font-black uppercase tracking-[0.3em]">Aguardando transmissão...</p>
                     </div>
                 )}
                 {chat.map((msg) => (
-                    <div key={msg.id} className={`flex flex-col ${msg.isSystem ? 'items-center' : msg.senderId === user.id ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-2 duration-300`}>
+                    <div key={msg.id} className={`flex flex-col ${msg.isSystem ? 'items-center' : msg.senderId === user.id ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-1 duration-300`}>
                         {msg.isSystem ? (
-                            <span className="text-[10px] text-slate-500 my-2 px-2 py-1 bg-slate-800/50 rounded-full border border-slate-800">{msg.text}</span>
+                            <div className="my-4 px-4 py-1 bg-white/5 border border-white/5 rounded-sm">
+                                <span className="text-[8px] font-mono font-black text-slate-600 uppercase tracking-widest">{msg.text}</span>
+                            </div>
                         ) : (
-                            <>
-                                <div className={`max-w-[85%] px-3 py-2 rounded-xl text-sm shadow-sm ${msg.senderId === user.id
-                                    ? 'bg-blue-600 text-white rounded-tr-none'
-                                    : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700'
+                            <div className={`max-w-[85%] ${msg.senderId === user.id ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+                                <div className={`px-4 py-3 rounded-sm text-xs font-mono font-bold leading-relaxed shadow-lg ${msg.senderId === user.id
+                                    ? 'bg-[#ffb800] text-black border border-[#ffb800]'
+                                    : 'bg-[#1c1f24] text-slate-300 border border-white/5'
                                     }`}>
                                     {msg.text}
                                 </div>
-                                <span className="text-[10px] text-slate-600 mt-1 px-1">
-                                    {msg.senderId !== user.id && <span className="font-bold mr-1">{msg.senderName}</span>}
-                                    {msg.timestamp}
-                                </span>
-                            </>
+                                <div className="flex items-center gap-2 px-1">
+                                    {msg.senderId !== user.id && <span className="text-[8px] font-mono font-black text-[#ffb800] uppercase tracking-widest">{msg.senderName}</span>}
+                                    <span className="text-[8px] font-mono font-black text-slate-700 tracking-widest">{msg.timestamp}</span>
+                                </div>
+                            </div>
                         )}
                     </div>
                 ))}
                 <div ref={chatEndRef} />
             </div>
 
-            <form onSubmit={onSendMessage} className="p-2 md:p-3 bg-slate-900 border-t border-slate-800 flex gap-2">
+            <form onSubmit={onSendMessage} className="p-4 bg-black/40 border-t border-white/5 flex gap-3">
                 <input
                     type="text"
-                    placeholder={isConnected ? "Mensagem..." : "Conectando..."}
+                    placeholder={isConnected ? "TRANSMITIR..." : "SINC_REQUERIDO..."}
                     disabled={!isConnected}
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm disabled:opacity-50"
+                    className="flex-1 bg-black/60 border border-white/5 rounded-sm px-4 py-4 text-white placeholder:text-slate-800 focus:outline-none focus:border-[#ffb800]/30 text-xs font-mono font-bold disabled:opacity-50 transition-all"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                 />
                 <button
                     type="submit"
                     disabled={!inputText.trim() || !isConnected}
-                    className="p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="aspect-square w-12 bg-[#ffb800] hover:bg-[#ffc933] text-black rounded-sm flex items-center justify-center transition-all disabled:opacity-50 disabled:grayscale active:scale-95 shadow-xl"
                 >
                     <Send size={18} />
                 </button>

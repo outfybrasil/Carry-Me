@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { ShieldCheck, Zap, Users, Gamepad2, GraduationCap, ChevronRight, Star, Loader2, PlayCircle } from 'lucide-react';
+import { ShieldCheck, Zap, Users, Gamepad2, GraduationCap, ChevronRight, Star, Loader2, PlayCircle, Crosshair, Target, Terminal, Shield, Cpu } from 'lucide-react';
 import { api } from '../services/api';
 
 interface LandingPageProps {
@@ -26,7 +26,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
     };
     fetchStats();
   }, []);
-  
+
   const scrollToFeatures = () => {
     const element = document.getElementById('features');
     if (element) {
@@ -42,154 +42,159 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
   };
 
   return (
-    <div className="min-h-screen bg-[#020202] text-white overflow-x-hidden selection:bg-brand-cyan selection:text-black">
-      
+    <div className="min-h-screen bg-[#0a0b0d] text-white overflow-x-hidden selection:bg-[#ffb800] selection:text-black noise-bg grid-bg scanline">
+
       {/* Background Ambience */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-grid opacity-60"></div>
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-brand-purple/20 rounded-full blur-[120px] animate-pulse-slow"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-brand-cyan/10 rounded-full blur-[120px] animate-pulse-slow" style={{animationDelay: '2s'}}></div>
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-[#ffb800]/5 rounded-full blur-[120px] animate-pulse-slow"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-white/5 rounded-full blur-[120px] animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
       </div>
 
       {/* Navbar */}
-      <nav className="fixed top-0 w-full z-50 bg-[#020202]/70 backdrop-blur-xl border-b border-white/5">
+      <nav className="fixed top-0 w-full z-50 bg-[#0a0b0d]/80 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => window.scrollTo(0,0)}>
-            <div className="w-10 h-10 bg-white text-black rounded-lg flex items-center justify-center font-display font-bold text-2xl shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+          <div className="flex items-center space-x-4 cursor-pointer group" onClick={() => window.scrollTo(0, 0)}>
+            <div className="w-10 h-10 bg-[#ffb800] text-black rounded-sm flex items-center justify-center font-tactical font-black text-2xl italic shadow-[0_0_20px_rgba(255,184,0,0.3)] group-hover:scale-110 transition-transform">
               C
             </div>
-            <span className="font-display font-bold text-2xl tracking-tight">Carry<span className="text-brand-cyan">Me</span></span>
+            <span className="font-tactical font-black text-2xl tracking-tighter uppercase italic">Carry<span className="text-[#ffb800]">Me</span></span>
           </div>
-          
-          <div className="flex items-center gap-4">
-            <button 
+
+          <div className="flex items-center gap-6">
+            <button
               onClick={onGetStarted}
-              className="px-6 py-2.5 text-sm font-medium text-slate-300 hover:text-white transition-colors hidden md:block"
+              className="text-[10px] font-mono font-black text-slate-500 hover:text-white uppercase tracking-[0.3em] transition-all hidden md:block"
             >
-              Login
+              LOGIN_TERMINAL
             </button>
-            <button 
+            <button
               onClick={onGetStarted}
-              className="group relative px-6 py-2.5 bg-white text-black font-bold text-sm rounded-lg hover:bg-slate-200 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] overflow-hidden"
+              className="px-8 py-3 bg-white/5 border border-white/10 hover:border-[#ffb800]/50 text-white font-tactical font-black text-xs uppercase italic tracking-widest rounded-sm transition-all hover:bg-white/10 flex items-center gap-3"
             >
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:animate-[shimmer_1s_infinite]"></div>
-              <span className="relative flex items-center gap-2">Criar Conta <ChevronRight size={14}/></span>
+              CRIAR_IDENTIDADE <ChevronRight size={14} className="text-[#ffb800]" />
             </button>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <div className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 z-10">
+      <div className="relative pt-40 pb-20 md:pt-60 md:pb-40 px-6 z-10">
         <div className="max-w-6xl mx-auto text-center">
-          
+
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-panel text-brand-cyan text-xs font-bold uppercase tracking-wider mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 border border-brand-cyan/20 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+          <div className="inline-flex items-center gap-3 px-5 py-2 rounded-sm bg-[#ffb800]/10 border border-[#ffb800]/30 text-[#ffb800] text-[10px] font-mono font-black uppercase tracking-[0.3em] mb-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-cyan opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-cyan"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ffb800] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#ffb800]"></span>
             </span>
-            Matchmaking v2.0
+            SISTEMA_DE_PAREAMENTO_TÁTICO_v4.0 // CS2_EXCLUSIVE
           </div>
-          
-          <h1 className="text-5xl md:text-8xl font-bold tracking-tighter mb-8 leading-[0.95] animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
-            Jogue Sem <br className="hidden md:block"/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-purple via-brand-accent to-brand-cyan animate-gradient-x">Toxicidade</span>
+
+          <h1 className="text-6xl md:text-9xl font-tactical font-black tracking-tighter mb-10 leading-[0.85] uppercase italic animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100">
+            A ELITE DO <br className="hidden md:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-[#ffb800] to-white bg-[length:200%_auto] animate-gradient-x">SERVIDOR</span>
           </h1>
-          
-          <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200 font-light">
-            A primeira plataforma onde sua <strong className="text-white">reputação</strong> define seu time. Encontre jogadores verificados e suba de elo com respeito.
+
+          <p className="text-base md:text-xl text-slate-500 mb-14 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200 font-mono font-bold uppercase tracking-wider">
+            A única plataforma onde sua <strong className="text-white">reputação tática</strong> define quem entra no seu esquadrão. Jogue CS2 com operadores de elite, sem toxicidade.
           </p>
-          
-          <div className="flex flex-col md:flex-row items-center justify-center gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
-            <button 
+
+          <div className="flex flex-col md:flex-row items-center justify-center gap-6 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+            <button
               onClick={onGetStarted}
-              className="px-8 py-4 bg-brand-purple hover:bg-brand-purple/90 text-white text-lg font-bold rounded-xl transition-all shadow-[0_0_30px_rgba(124,58,237,0.4)] flex items-center gap-3 transform hover:scale-105 hover:-translate-y-1"
+              className="px-12 py-6 bg-[#ffb800] hover:bg-[#ffc933] text-black text-xl font-tactical font-black uppercase italic tracking-widest rounded-sm transition-all shadow-[0_10px_40px_rgba(255,184,0,0.2)] flex items-center gap-4 transform active:scale-95"
             >
-              <Gamepad2 className="fill-current" />
-              Encontrar Partida
+              <Gamepad2 size={24} />
+              INICIAR_OPERACAO
             </button>
-            <button 
+            <button
               onClick={scrollToFeatures}
-              className="px-8 py-4 glass-button text-white text-lg font-medium rounded-xl transition-all hover:bg-white/10 flex items-center gap-2"
+              className="px-10 py-6 bg-white/5 border border-white/10 text-white text-xl font-tactical font-black uppercase italic tracking-widest rounded-sm transition-all hover:bg-white/10 flex items-center gap-3"
             >
-              <PlayCircle size={20} />
-              Como Funciona
+              <Terminal size={20} />
+              MANUAL_TATICO
             </button>
           </div>
 
-          {/* Stats Bar (Glass) */}
-          <div className="mt-20 glass-panel rounded-2xl p-8 max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 backdrop-blur-2xl">
-             <div className="text-center">
-                <div className="text-3xl font-display font-bold text-white mb-1">
-                  {loadingStats ? <div className="h-8 w-16 bg-white/10 rounded animate-pulse mx-auto"></div> : formatNumber(stats.users)}
-                </div>
-                <div className="text-xs text-slate-500 uppercase tracking-widest font-semibold">Jogadores</div>
-             </div>
-             <div className="text-center border-l border-white/5">
-                <div className="text-3xl font-display font-bold text-white mb-1">
-                   {loadingStats ? <div className="h-8 w-16 bg-white/10 rounded animate-pulse mx-auto"></div> : formatNumber(stats.matches)}
-                </div>
-                <div className="text-xs text-slate-500 uppercase tracking-widest font-semibold">Partidas</div>
-             </div>
-             <div className="text-center border-l border-white/5">
-                <div className="text-3xl font-display font-bold text-white mb-1">
-                   {loadingStats ? <div className="h-8 w-16 bg-white/10 rounded animate-pulse mx-auto"></div> : stats.sherpas}
-                </div>
-                <div className="text-xs text-slate-500 uppercase tracking-widest font-semibold">Mentores</div>
-             </div>
-             <div className="text-center border-l border-white/5">
-                <div className="text-3xl font-display font-bold text-brand-cyan mb-1 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]">
-                   {loadingStats ? <div className="h-8 w-16 bg-white/10 rounded animate-pulse mx-auto"></div> : '4.9'}
-                </div>
-                <div className="text-xs text-slate-500 uppercase tracking-widest font-semibold">Qualidade</div>
-             </div>
+          {/* Stats Bar (Tactical) */}
+          <div className="mt-32 border border-white/5 bg-[#121417]/80 backdrop-blur-md rounded-sm p-10 max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10">
+            <div className="text-center relative group">
+              <div className="absolute -inset-4 bg-[#ffb800]/5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="text-3xl font-mono font-black text-white mb-2 tracking-tighter">
+                {loadingStats ? <div className="h-8 w-16 bg-white/10 rounded animate-pulse mx-auto"></div> : formatNumber(stats.users)}
+              </div>
+              <div className="text-[10px] text-slate-600 uppercase tracking-[0.3em] font-black font-mono">OPERADORES_ATIVOS</div>
+            </div>
+            <div className="text-center border-l border-white/5 relative group">
+              <div className="absolute -inset-4 bg-[#ffb800]/5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="text-3xl font-mono font-black text-white mb-2 tracking-tighter">
+                {loadingStats ? <div className="h-8 w-16 bg-white/10 rounded animate-pulse mx-auto"></div> : formatNumber(stats.matches)}
+              </div>
+              <div className="text-[10px] text-slate-600 uppercase tracking-[0.3em] font-black font-mono">CONFLITOS_SYNC</div>
+            </div>
+            <div className="text-center border-l border-white/5 relative group">
+              <div className="absolute -inset-4 bg-[#ffb800]/5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="text-3xl font-mono font-black text-white mb-2 tracking-tighter">
+                {loadingStats ? <div className="h-8 w-16 bg-white/10 rounded animate-pulse mx-auto"></div> : stats.sherpas}
+              </div>
+              <div className="text-[10px] text-slate-600 uppercase tracking-[0.3em] font-black font-mono">INSTRUTORES_PRO</div>
+            </div>
+            <div className="text-center border-l border-white/5 relative group">
+              <div className="absolute -inset-4 bg-[#ffb800]/5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="text-3xl font-mono font-black text-[#ffb800] mb-2 tracking-tighter drop-shadow-[0_0_10px_rgba(255,184,0,0.3)]">
+                {loadingStats ? <div className="h-8 w-16 bg-white/10 rounded animate-pulse mx-auto"></div> : stats.satisfaction.toFixed(1)}
+              </div>
+              <div className="text-[10px] text-slate-600 uppercase tracking-[0.3em] font-black font-mono">INDICE_DE_RESPEITO</div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Features Grid */}
-      <div id="features" className="py-32 relative z-10">
+      <div id="features" className="py-40 relative z-10 border-t border-white/5">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-4">
-             <div>
-                <h2 className="text-4xl md:text-5xl font-bold mb-4">O Ecossistema <span className="text-brand-purple">CarryMe</span></h2>
-                <p className="text-slate-400 max-w-xl text-lg">Tecnologia e psicologia aplicadas para criar a melhor experiência competitiva.</p>
-             </div>
-             <div className="w-32 h-1 bg-gradient-to-r from-brand-purple to-transparent rounded-full"></div>
+          <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-10">
+            <div className="max-w-2xl">
+              <h2 className="text-4xl md:text-6xl font-tactical font-black mb-6 uppercase italic tracking-tighter">PROTOCOLO <span className="text-[#ffb800]">OPERACIONAL</span></h2>
+              <p className="text-slate-500 text-lg font-mono font-bold uppercase tracking-widest leading-relaxed">Arquitetura desenvolvida para transformar sua experiência competitiva no CS2.</p>
+            </div>
+            <div className="w-full md:w-48 h-[1px] bg-gradient-to-r from-[#ffb800] to-transparent"></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Feature 1 */}
-            <div className="glass-panel p-8 rounded-3xl hover:bg-white/5 transition-all duration-300 group border-t border-white/10">
-              <div className="w-16 h-16 bg-brand-purple/20 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform border border-brand-purple/30">
-                <ShieldCheck className="w-8 h-8 text-brand-purple" />
+            <div className="bg-[#121417] p-10 rounded-sm border border-white/5 hover:border-[#ffb800]/30 transition-all duration-500 group relative overflow-hidden">
+              <div className="absolute right-0 top-0 p-4 opacity-[0.03] group-hover:opacity-[0.1] transition-opacity"><ShieldCheck size={120} /></div>
+              <div className="w-16 h-16 bg-[#ffb800]/10 border border-[#ffb800]/20 rounded-sm flex items-center justify-center mb-10 group-hover:bg-[#ffb800] group-hover:text-black transition-all">
+                <ShieldCheck size={32} />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Reputação Real</h3>
-              <p className="text-slate-400 leading-relaxed font-light">
-                Nosso algoritmo analisa reports e elogios para criar um Score de comportamento único. Jogadores tóxicos são isolados automaticamente.
+              <h3 className="text-2xl font-tactical font-black text-white mb-6 uppercase italic tracking-tight group-hover:text-[#ffb800] transition-colors">DNA_REPUTACAO</h3>
+              <p className="text-slate-500 leading-relaxed font-mono font-bold text-[11px] uppercase tracking-widest">
+                Seu comportamento dita seu destino. O Trust Score analisa cada assistência e report, garantindo que você jogue apenas com quem respeita o esporte.
               </p>
             </div>
 
             {/* Feature 2 */}
-            <div className="glass-panel p-8 rounded-3xl hover:bg-white/5 transition-all duration-300 group border-t border-white/10">
-              <div className="w-16 h-16 bg-brand-cyan/20 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform border border-brand-cyan/30">
-                <Users className="w-8 h-8 text-brand-cyan" />
+            <div className="bg-[#121417] p-10 rounded-sm border border-white/5 hover:border-[#ffb800]/30 transition-all duration-500 group relative overflow-hidden">
+              <div className="absolute right-0 top-0 p-4 opacity-[0.03] group-hover:opacity-[0.1] transition-opacity"><Crosshair size={120} /></div>
+              <div className="w-16 h-16 bg-[#ffb800]/10 border border-[#ffb800]/20 rounded-sm flex items-center justify-center mb-10 group-hover:bg-[#ffb800] group-hover:text-black transition-all">
+                <Crosshair size={32} />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Vibe Matchmaking</h3>
-              <p className="text-slate-400 leading-relaxed font-light">
-                Não misture objetivos. Selecione <strong>Tryhard</strong> para subir de elo ou <strong>Chill</strong> para se divertir sem pressão.
+              <h3 className="text-2xl font-tactical font-black text-white mb-6 uppercase italic tracking-tight group-hover:text-[#ffb800] transition-colors">MODULOS_DE_COMBATE</h3>
+              <p className="text-slate-500 leading-relaxed font-mono font-bold text-[11px] uppercase tracking-widest">
+                Escolha sua diretriz: <strong>Tryhard</strong> para otimizar ELO, ou <strong>Casual</strong> para networking e chill. O sistema ajusta o pareamento automaticamente.
               </p>
             </div>
 
             {/* Feature 3 */}
-            <div className="glass-panel p-8 rounded-3xl hover:bg-white/5 transition-all duration-300 group border-t border-white/10">
-              <div className="w-16 h-16 bg-brand-accent/20 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform border border-brand-accent/30">
-                <GraduationCap className="w-8 h-8 text-brand-accent" />
+            <div className="bg-[#121417] p-10 rounded-sm border border-white/5 hover:border-[#ffb800]/30 transition-all duration-500 group relative overflow-hidden">
+              <div className="absolute right-0 top-0 p-4 opacity-[0.03] group-hover:opacity-[0.1] transition-opacity"><Target size={120} /></div>
+              <div className="w-16 h-16 bg-[#ffb800]/10 border border-[#ffb800]/20 rounded-sm flex items-center justify-center mb-10 group-hover:bg-[#ffb800] group-hover:text-black transition-all">
+                <Target size={32} />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Sherpa Market</h3>
-              <p className="text-slate-400 leading-relaxed font-light">
-                O marketplace de conhecimento. Contrate jogadores de alto nível para analisar suas partidas e te ensinar a carregar.
+              <h3 className="text-2xl font-tactical font-black text-white mb-6 uppercase italic tracking-tight group-hover:text-[#ffb800] transition-colors">ACADEMIA_ELITE</h3>
+              <p className="text-slate-500 leading-relaxed font-mono font-bold text-[11px] uppercase tracking-widest">
+                Acesso direto a instrutores verificados para análise de demos. Domine lineups e micro-movimentação com mentorias táticas personalizadas.
               </p>
             </div>
           </div>
@@ -197,77 +202,89 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewTerms, on
       </div>
 
       {/* Lobby Visual */}
-      <div className="py-20 relative overflow-hidden bg-white/[0.02] border-y border-white/5">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center gap-16">
-           <div className="flex-1 order-2 md:order-1">
-             <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-400 rounded-lg text-xs font-bold mb-6 border border-green-500/20">
-               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-               Lobby Ativo
-             </div>
-             <h2 className="text-4xl font-bold mb-6">Pré-Visualização de Squad</h2>
-             <p className="text-slate-400 text-lg mb-8 font-light">
-               Diferente da fila solo, aqui você vê quem entra. Analise o perfil, as badges e o histórico antes de aceitar a partida.
-             </p>
-             
-             <div className="grid grid-cols-2 gap-4">
-                <div className="glass-panel p-4 rounded-xl flex items-center gap-3">
-                   <div className="bg-white/10 p-2 rounded-lg"><Zap size={20}/></div>
-                   <span className="font-medium">Sem Trolls</span>
-                </div>
-                <div className="glass-panel p-4 rounded-xl flex items-center gap-3">
-                   <div className="bg-white/10 p-2 rounded-lg"><Gamepad2 size={20}/></div>
-                   <span className="font-medium">Voice Chat</span>
-                </div>
-             </div>
-           </div>
-           
-           {/* Card 3D Effect */}
-           <div className="flex-1 relative order-1 md:order-2 perspective-1000">
-              <div className="absolute inset-0 bg-brand-purple blur-[100px] opacity-20"></div>
-              <div className="glass-panel rounded-2xl p-6 relative transform rotate-y-12 rotate-x-6 hover:rotate-0 transition-all duration-700 shadow-2xl border-t border-white/20">
-                 <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
-                    <div>
-                        <h3 className="font-bold text-white text-lg">Ranked Flex</h3>
-                        <span className="text-xs text-brand-cyan uppercase tracking-wider">Tryhard Vibe</span>
-                    </div>
-                    <span className="text-xs px-2 py-1 bg-white/10 rounded font-mono">4/5</span>
-                 </div>
-                 <div className="space-y-3">
-                    {[1,2,3,4].map((i) => (
-                       <div key={i} className="flex items-center gap-4 p-3 bg-black/40 rounded-xl border border-white/5 hover:border-brand-purple/50 transition-colors">
-                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 overflow-hidden">
-                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i+55}`} alt="avatar" />
-                          </div>
-                          <div className="flex-1">
-                             <div className="h-2 w-20 bg-white/20 rounded mb-2"></div>
-                             <div className="h-1.5 w-10 bg-white/10 rounded"></div>
-                          </div>
-                          <div className="text-green-400 text-xs font-bold tracking-wider">READY</div>
-                       </div>
-                    ))}
-                    <div className="flex items-center justify-center p-4 border border-dashed border-white/20 rounded-xl text-slate-500 bg-white/[0.02]">
-                       <div className="animate-pulse flex items-center gap-2 text-sm">
-                           <Loader2 className="animate-spin" size={14} /> Aguardando...
-                       </div>
-                    </div>
-                 </div>
+      <div className="py-40 relative overflow-hidden bg-black/40 border-y border-white/5">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center gap-24">
+          <div className="flex-1 order-2 md:order-1">
+            <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-green-500/10 text-green-400 border border-green-500/20 rounded-sm text-[10px] font-mono font-black uppercase tracking-[0.2em] mb-8">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_#22c55e]"></span>
+              SISTEMA_OPERACIONAL_ATIVO
+            </div>
+            <h2 className="text-4xl md:text-5xl font-tactical font-black mb-8 uppercase italic tracking-tighter leading-none">DOMÍNIO TOTAL DO <br /> SEU <span className="text-[#ffb800]">LOBBY</span></h2>
+            <p className="text-slate-500 text-lg mb-12 font-mono font-bold uppercase tracking-widest leading-relaxed">
+              Diferente de filas genéricas, aqui você é o comandante. Visualize a patente real, trust score e o DNA competitivo dos operadores antes de iniciar.
+            </p>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="bg-[#121417] p-6 rounded-sm border border-white/5 flex items-center gap-4 group hover:border-[#ffb800]/30 transition-all">
+                <div className="bg-[#ffb800]/10 p-3 rounded-sm text-[#ffb800] group-hover:bg-[#ffb800] group-hover:text-black transition-all"><Shield size={20} /></div>
+                <span className="font-tactical font-black text-xs uppercase italic tracking-widest text-white">ANTI-TROLL_SHIELD</span>
               </div>
-           </div>
+              <div className="bg-[#121417] p-6 rounded-sm border border-white/5 flex items-center gap-4 group hover:border-[#ffb800]/30 transition-all">
+                <div className="bg-[#ffb800]/10 p-3 rounded-sm text-[#ffb800] group-hover:bg-[#ffb800] group-hover:text-black transition-all"><Cpu size={20} /></div>
+                <span className="font-tactical font-black text-xs uppercase italic tracking-widest text-white">LOW_LATENCY_SYNC</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3D Effect */}
+          <div className="flex-1 relative order-1 md:order-2 perspective-1000">
+            <div className="absolute inset-0 bg-[#ffb800]/10 blur-[120px] opacity-20 animate-pulse"></div>
+            <div className="bg-[#121417] rounded-sm p-8 relative transform rotate-y-12 rotate-x-6 hover:rotate-0 transition-all duration-1000 shadow-2xl border border-white/10 group">
+              <div className="flex justify-between items-center mb-8 border-b border-white/5 pb-6">
+                <div>
+                  <h3 className="font-tactical font-black text-xl text-white uppercase italic tracking-tighter">CENTRAL_DE_COMANDO</h3>
+                  <span className="text-[10px] text-[#ffb800] font-mono font-black uppercase tracking-[0.3em]">MIRAGE // COMPETITIVE_DEPLOYMENT</span>
+                </div>
+                <div className="bg-black/40 px-3 py-1.5 border border-white/5 rounded-sm flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-[10px] font-mono font-bold text-white">4/5_SYNC</span>
+                </div>
+              </div>
+              <div className="space-y-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-center gap-4 p-4 bg-black/40 rounded-sm border border-white/5 group-hover:border-[#ffb800]/20 transition-all">
+                    <div className="relative">
+                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i + 99}`} className="w-12 h-12 rounded-sm border border-white/10 grayscale group-hover:grayscale-0 transition-all" alt="avatar" />
+                      <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-[#121417] rounded-full"></div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="h-3 w-24 bg-white/10 rounded-sm mb-2 group-hover:bg-[#ffb800]/20 transition-all"></div>
+                      <div className="flex gap-1">
+                        <div className="h-1 w-8 bg-white/5 rounded-full"></div>
+                        <div className="h-1 w-6 bg-[#ffb800]/20 rounded-full"></div>
+                      </div>
+                    </div>
+                    <div className="text-[#ffb800] text-[9px] font-mono font-black tracking-[0.2em] uppercase border border-[#ffb800]/30 px-3 py-1 rounded-sm bg-[#ffb800]/5">READY</div>
+                  </div>
+                ))}
+                <div className="flex items-center justify-center p-6 border-2 border-dashed border-white/5 rounded-sm bg-white/[0.01]">
+                  <div className="animate-pulse flex items-center gap-3 text-[10px] font-mono font-black text-slate-700 uppercase tracking-[0.3em]">
+                    <Loader2 className="animate-spin" size={16} /> AGUARDANDO_5º_OPERADOR...
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Footer */}
-      <footer className="bg-black py-12 text-center text-slate-600 text-sm border-t border-white/5 relative z-10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center gap-2 mb-4 md:mb-0 opacity-50 hover:opacity-100 transition-opacity">
-               <div className="w-6 h-6 bg-white text-black rounded flex items-center justify-center font-bold text-xs">O</div>
-               <span className="font-bold">Outfy &copy; 2026</span>
+      <footer className="bg-[#0a0b0d] py-20 text-center text-slate-700 text-sm border-t border-white/5 relative z-10">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-10">
+          <div className="flex items-center gap-4 opacity-50 hover:opacity-100 transition-opacity group">
+            <div className="w-10 h-10 bg-white text-black rounded-sm flex items-center justify-center font-tactical font-black text-2xl italic transition-transform group-hover:rotate-12">C</div>
+            <div className="text-left">
+              <span className="font-tactical font-black text-white block leading-none text-xl uppercase italic italic tracking-tighter">CARRYME</span>
+              <span className="text-[10px] uppercase font-mono font-bold tracking-[0.4em] text-slate-600">VIBE_OPERATIONS // 2026</span>
             </div>
-            <div className="flex gap-6">
-                <button onClick={onViewTerms} className="hover:text-white transition-colors">Termos</button>
-                <button onClick={onViewPrivacy} className="hover:text-white transition-colors">Privacidade</button>
-                <a href="#" className="hover:text-white transition-colors">Discord</a>
-            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-10">
+            <button onClick={onViewTerms} className="hover:text-[#ffb800] transition-all font-mono font-black uppercase tracking-[0.2em] text-[10px]">PROTOCOL_TERMS</button>
+            <button onClick={onViewPrivacy} className="hover:text-[#ffb800] transition-all font-mono font-black uppercase tracking-[0.2em] text-[10px]">PRIVACY_LOG</button>
+            <div className="hidden md:block h-3 w-[1px] bg-white/10"></div>
+            <a href="#" className="hover:text-[#ffb800] transition-all font-mono font-black uppercase tracking-[0.2em] text-[10px]">DISCORD_HQ</a>
+            <a href="#" className="hover:text-[#ffb800] transition-all font-mono font-black uppercase tracking-[0.2em] text-[10px]">SUPPORT_DEPT</a>
+          </div>
         </div>
       </footer>
     </div>

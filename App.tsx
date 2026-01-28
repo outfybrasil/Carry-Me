@@ -25,7 +25,7 @@ import OnboardingTour from './components/OnboardingTour';
 import CoinCelebration from './components/CoinCelebration';
 import { Player, StoreItem, LobbyConfig, Vibe } from './types';
 import { api } from './services/api';
-import { Loader2, LogOut, AlertTriangle, RefreshCw, MessageSquare, CheckCircle, X } from 'lucide-react';
+import { Loader2, LogOut, AlertTriangle, RefreshCw, MessageSquare, CheckCircle, X, Shield, Terminal } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 // --- GLOBAL TOAST NOTIFICATION COMPONENT ---
@@ -63,25 +63,60 @@ const Toast = ({ title, message, type, onClose }: { title: string, message: stri
 };
 
 const ManifestoModal = ({ onAccept }: { onAccept: () => void }) => (
-  <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-8 shadow-2xl relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-orange-500"></div>
-      <h2 className="text-2xl font-bold text-white mb-6 font-display">O Manifesto CarryMe</h2>
-      <div className="space-y-4 text-slate-300 mb-8 max-h-[60vh] overflow-y-auto">
-        <p>Ao entrar nesta plataforma, eu entendo que:</p>
-        <ul className="list-disc pl-5 space-y-2">
-          <li><strong>Habilidade não é salvo-conduto.</strong> Ser bom no jogo não me dá o direito de ser tóxico.</li>
-          <li><strong>Paciência é uma virtude.</strong> Erros acontecem e eu irei apoiar meu time ao invés de julgar.</li>
-          <li><strong>Meu voto tem poder.</strong> Avaliarei meus colegas com justiça e honestidade.</li>
-          <li><strong>Respeito é a base.</strong> Racismo, homofobia ou assédio resultarão em banimento permanente.</li>
-        </ul>
+  <div className="fixed inset-0 z-[160] flex items-center justify-center p-4">
+    <div className="absolute inset-0 bg-[#0a0b0d]/95 backdrop-blur-md" />
+    <div className="relative bg-[#121417] border border-white/10 w-full max-w-lg rounded-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 noise-bg grid-bg scanline">
+      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#ffb800] to-transparent shadow-[0_0_15px_#ffb800]"></div>
+
+      <div className="p-8">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-12 h-12 bg-[#ffb800]/10 border border-[#ffb800]/30 rounded-sm flex items-center justify-center text-[#ffb800]">
+            <Shield size={24} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-tactical font-black text-white uppercase italic tracking-tighter">PROTOCOLO_DE_CONDUTA</h2>
+            <p className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mt-1">Sincronizando Manifesto CarryMe</p>
+          </div>
+        </div>
+
+        <div className="space-y-6 text-slate-400 mb-10 max-h-[60vh] overflow-y-auto custom-scrollbar pr-4">
+          <p className="text-xs font-mono font-bold uppercase tracking-widest text-[#ffb800]">DIRETRIZES_ESTRATÉGICAS:</p>
+          <ul className="space-y-4">
+            <li className="flex gap-3">
+              <span className="text-[#ffb800] mt-1 shrink-0"><CheckCircle size={14} /></span>
+              <p className="text-sm leading-relaxed"><strong className="text-white uppercase italic">Habilidade não é salvo-conduto.</strong> Ser bom no jogo não me dá o direito de ser tóxico.</p>
+            </li>
+            <li className="flex gap-3">
+              <span className="text-[#ffb800] mt-1 shrink-0"><CheckCircle size={14} /></span>
+              <p className="text-sm leading-relaxed"><strong className="text-white uppercase italic">Paciência é uma virtude.</strong> Erros acontecem e eu irei apoiar meu time ao invés de julgar.</p>
+            </li>
+            <li className="flex gap-3">
+              <span className="text-[#ffb800] mt-1 shrink-0"><CheckCircle size={14} /></span>
+              <p className="text-sm leading-relaxed"><strong className="text-white uppercase italic">Meu voto tem poder.</strong> Avaliarei meus colegas com justiça e honestidade.</p>
+            </li>
+            <li className="flex gap-3">
+              <span className="text-[#ffb800] mt-1 shrink-0"><CheckCircle size={14} /></span>
+              <p className="text-sm leading-relaxed"><strong className="text-white uppercase italic">Respeito é a base.</strong> Racismo, homofobia ou assédio resultarão em banimento permanente.</p>
+            </li>
+          </ul>
+        </div>
+
+        <button
+          onClick={onAccept}
+          className="w-full py-5 bg-[#ffb800] hover:bg-[#ffc933] text-black font-tactical font-black uppercase italic tracking-widest rounded-sm transition-all shadow-[0_0_30px_rgba(255,184,0,0.15)] active:scale-95 flex items-center justify-center gap-3"
+        >
+          <Terminal size={18} /> INICIAR_OPERACAO
+        </button>
       </div>
-      <button
-        onClick={onAccept}
-        className="w-full py-4 bg-brand-purple hover:bg-brand-purple/90 text-white font-bold rounded-xl transition-all shadow-lg shadow-brand-purple/20"
-      >
-        Eu Aceito o Compromisso
-      </button>
+
+      <div className="px-8 py-4 bg-black/40 border-t border-white/5 flex justify-between items-center">
+        <p className="text-[9px] font-mono text-slate-600 uppercase tracking-[0.2em]">CarryMe // Anti-Toxic Protocol</p>
+        <div className="flex gap-1">
+          <div className="w-1 h-1 bg-[#ffb800] rounded-full animate-pulse"></div>
+          <div className="w-1 h-1 bg-[#ffb800] rounded-full animate-pulse delay-75"></div>
+          <div className="w-1 h-1 bg-[#ffb800] rounded-full animate-pulse delay-150"></div>
+        </div>
+      </div>
     </div>
   </div>
 );
@@ -280,6 +315,20 @@ const App: React.FC = () => {
               checkAvatarTask(profile); // Check avatar immediately
               currentUserRef = profile; // Update local ref
               if (!profile.tutorialCompleted) setOnboardingStep(1);
+
+              // CHECK WELCOME BONUS
+              api.checkWelcomeBonus(profile.id).then((granted) => {
+                if (granted && mounted) {
+                  setUser(prev => prev ? { ...prev, coins: prev.coins + 100 } : null);
+                  setCoinDiff(100);
+                  setToast({
+                    title: "Bônus de Boas-vindas! 🎁",
+                    msg: "Você recebeu 100 CarryCoins para começar sua jornada!",
+                    type: "success"
+                  });
+                  playUiSound('coin');
+                }
+              });
             } else {
               // Se falhar ao sincronizar, desloga para evitar loop infinito
               console.warn("Profile sync failed, signing out.");
@@ -448,6 +497,7 @@ const App: React.FC = () => {
     const openidClaimedId = params.get('openid.claimed_id');
 
     if (provider === 'steam' && openidClaimedId) {
+      console.log("[App] Steam callback detected:", { provider, openidClaimedId });
       if ((window as any)._steamProcessed) return;
       (window as any)._steamProcessed = true;
 
@@ -462,10 +512,10 @@ const App: React.FC = () => {
             // Force a full profile re-sync from DB
             await refreshUser();
 
-            // IF IN POPUP: Message parent and close
+            // IF IN POPUP: Just send the ID and let the parent (Settings) handle it.
             if (window.opener) {
-              window.opener.postMessage({ type: 'STEAM_AUTH_SUCCESS', steamId: extractedSteamId }, window.location.origin);
-              window.close();
+              window.opener.postMessage({ type: 'STEAM_AUTH_ID', steamId: extractedSteamId }, window.location.origin);
+              setTimeout(() => window.close(), 100);
               return;
             }
 
@@ -492,7 +542,7 @@ const App: React.FC = () => {
       // 2. If NO user (Logging in via Steam - future implementation)
       else if (window.opener) {
         window.opener.postMessage({ type: 'STEAM_AUTH_ID', steamId: extractedSteamId }, window.location.origin);
-        window.close();
+        setTimeout(() => window.close(), 100);
       }
     }
   }, [user]);
@@ -692,7 +742,7 @@ const App: React.FC = () => {
     if (showVotingOverride) return <Voting onComplete={handleVoteComplete} />;
 
     switch (currentPage) {
-      case 'dashboard': return <Dashboard onFindMatch={() => setCurrentPage('match')} onVote={() => setShowVotingOverride(true)} />;
+      case 'dashboard': return <Dashboard onFindMatch={() => setCurrentPage('match')} onVote={() => setShowVotingOverride(true)} onUpgrade={() => triggerPayment('PREMIUM')} />;
       case 'profile': return <Profile user={user} onEquip={handleEquipItem} onProfileUpdate={handleProfileUpdated} onUpgrade={() => triggerPayment('PREMIUM')} />;
       case 'friends': return <Friends user={user} onViewProfile={handleViewPublicProfile} />;
       case 'sherpa': return <SherpaMarket user={user} onUpdateUser={refreshUser} onViewProfile={handleViewPublicProfile} />;
@@ -719,12 +769,12 @@ const App: React.FC = () => {
           onViewProfile={handleViewPublicProfile}
         />
       );
-      case 'active-match': return <ActiveMatch onFinish={handleFinishMatch} />;
+      case 'active-match': return <ActiveMatch config={currentLobbyConfig} lobbyId={currentLobbyId || '0000'} onFinish={handleFinishMatch} />;
       case 'settings': return <Settings user={user} onLogout={handleLogout} onNavigate={setCurrentPage} volume={volume} onVolumeChange={setVolume} onUpdateUser={refreshUser} />;
       case 'terms': return <Terms onBack={() => setCurrentPage('dashboard')} />;
       case 'privacy': return <Privacy onBack={() => setCurrentPage('dashboard')} />;
       case 'public-profile': return <PublicProfile username={publicProfileUsername || ''} onBack={() => setCurrentPage(lastPage)} />;
-      default: return <Dashboard onFindMatch={() => setCurrentPage('match')} onVote={() => setShowVotingOverride(true)} />;
+      default: return <Dashboard onFindMatch={() => setCurrentPage('match')} onVote={() => setShowVotingOverride(true)} onUpgrade={() => triggerPayment('PREMIUM')} />;
     }
   };
 

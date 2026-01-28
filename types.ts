@@ -186,8 +186,14 @@ export interface Match {
   game: string;
   vibe: Vibe;
   date: string;
+  map?: string;
+  mode?: string;
+  kills?: number;
+  deaths?: number;
+  assists?: number;
+  rating: number;
   teammates: Player[];
-  result: 'VICTORY' | 'DEFEAT';
+  result: 'VICTORY' | 'DEFEAT' | 'WIN' | 'LOSS';
   pendingVote: boolean;
 }
 

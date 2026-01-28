@@ -103,7 +103,7 @@ const ClanRanking: React.FC = () => {
                             {/* Members */}
                             <div className="col-span-3 text-right text-slate-400 flex items-center justify-end gap-2">
                                 <Users size={14} />
-                                <span>- / 50</span> {/* Placeholder member count */}
+                                <span>{clan.memberCount || 0} / 50</span>
                             </div>
 
                             {/* Prestige */}
